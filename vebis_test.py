@@ -30,6 +30,8 @@ import vebis
 import random
 import unittest
 
+import matplotlib.pyplot as pl
+
 
 class TestVebis(unittest.TestCase):
 
@@ -121,9 +123,46 @@ class TestVebis(unittest.TestCase):
     def test_integral(self):
         """ Test integral of signal computation. """
 
-        # compare original test signal and output signal
-        self.assertEqual(30,self.signal.integral())
+        self.assertEqual(30,self.signal.integral(1))
+        self.assertEqual(31,self.signal.integral(0))
+        self.assertEqual(31,(~self.signal).integral(1))
+        self.assertEqual(30,(~self.signal).integral(0))
 
+
+    def test_correlation(self):
+        """ Test correlation function of two signals (*self* and *other*). """
+
+        # make repeatable random sequences
+        random.seed(1)
+
+        # iterate test on several random signals
+        for t in range(1):
+
+            # create random signals
+            in_a = vebis.Signal()
+            in_a.noise(0,5)
+            in_b = vebis.Signal()
+            in_b.noise(0,5)
+            print in_a
+            print in_b
+
+            # direct xor
+            corr, time = in_a.correlation(in_b)
+
+            # compare original test signal and output signal
+            #self.assertEqual(xor1,xor2)
+            pl.figure(1)
+            pl.subplot(3,1,1)
+            pl.xlim(0,5)
+            pl.ylim(-0.1,1.1)
+            in_a.plot() 
+            pl.subplot(3,1,2)
+            pl.xlim(0,5)
+            pl.ylim(-0.1,1.1)
+            in_b.plot() 
+            pl.subplot(3,1,3)
+            pl.plot(time,corr)
+            pl.show()
 
 
 # main
