@@ -27,7 +27,6 @@
 #
 # TODO
 # - extend vbs format to support odd number of pulses/edges
-# - check tests for inverted signals
 # .-
 
 
@@ -57,7 +56,7 @@ class Signal:
 
 
     def __init__(self,edges=[],initial_value=0,time_offset=0,
-            time_scale=1000):
+            time_scale=1):
 
         # sequence of signal changes times
         if edges:
@@ -345,15 +344,112 @@ class Signal:
         return not_obj
 
 
-    def integral(self):
+    def integral(self,level=1):
         """ Returns the integral (int) of signal: the summation of all periods
-        in which the signal is at one level. """
+        in which the signal is at the level specified by *level* argument. The
+        summation is operated on the signal domain only: levels at 1 before the
+        first signal edge and after the last edge are ignored. """
 
-        integral = 0
+        # simplify var access
         edges = self.edges
-        for i in range(0,len(edges),2):
-            integral += edges[i + 1] - edges[i]
+        length = self.length
+        level = self.initial_value ^ (not level)
+
+        # do level 1 summation between first and last signal edges
+        integral = 0
+        for i in range(level,length,2):
+            try:
+                integral += edges[i + 1] - edges[i]
+            except:
+                pass
 
         return integral
+
+
+    def correlation(self,other):
+        """ Returns the unormalized correlation function of two signals
+        (*self* and *other*). """
+
+        # simplify variables access
+        signal_a = self.clone()
+        signal_b = other.clone()
+        edges_a = signal_a.edges
+        edges_b = signal_b.edges
+        length_a = signal_a.length
+        length_b = signal_b.length
+        off_a = signal_a.time_offset
+        off_b = signal_b.time_offset
+
+        # take the first edge of signal B as origin. Keep signal B fixed in
+        # time and slide signal A. To start, shift A last edge on the first
+        # edge of B.
+        shift = edges_b[0] + off_b - edges_a[-1] - off_a
+        print 'shift=',shift
+        for i in range(length_a):
+            edges_a[i] += shift
+
+        # detect the values of the phasing variable corresponding to
+        # the vertex of the correlation function
+        phi = edges_b[:]
+        print 'phi=',phi
+        for i in range(length_a-2,-1,-1):
+            off_aa = edges_a[i + 1] - edges_a[i]
+            print 'off_aa=',off_aa
+            for j in range(length_b):
+                edges_b[j] += off_aa
+            phi += edges_b[:]
+            print 'phi=',phi
+        phi.sort()
+
+        # keep only unique phase values
+        k = 0
+        while k < len(phi) - 1:
+            if not phi[k] - phi[k + 1]:
+                del phi[k]
+            else:
+                k += 1
+        print 'phi=',phi
+
+        # reset signal B edges to the original time values
+        edges_b = other.edges[:]
+
+        # compute correlation function at previuosly computed phase values
+        signal_b.edges = edges_b
+        corr = []
+        for ph in phi:
+            print 'ph=',ph
+            # apply phase to signal A
+            for i in range(length_a):
+                edges_a[i] += ph
+            print 'edges_a=',edges_a
+            print 'edges_b=',edges_b
+
+            # correlation among signal A and B
+            signal_a.edges = edges_a
+            corr += [(signal_a ^ signal_b).integral(0)]
+            print 'xor=',signal_a ^ signal_b
+            print 'corr=',corr
+
+        return corr, phi
+
+
+    def plot(self,*args,**kargs):
+        """ Plot signal as square wave. """
+
+        from matplotlib.pyplot import step
+
+        # generate signal values
+        values = [self.initial_value]
+        for i in range(1,self.length):
+            values += [not values[-1]]
+
+        if args:
+            step(self.edges,values,args)
+        elif kargs:
+            step(self.edges,values,kargs)
+        elif args and kargs:
+            step(self.edges,values,args,kargs)
+        else:
+            step(self.edges,values)
 
 #### END
