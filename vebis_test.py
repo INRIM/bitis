@@ -26,7 +26,7 @@
 #
 # .-
 
-import vebis
+import vebis as vb
 import random
 import unittest
 
@@ -38,40 +38,28 @@ class TestVebis(unittest.TestCase):
     def setUp(self):
 
         # test signal instance
-        self.signal = vebis.Signal()
+        self.signal = vb.Signal()
         self.signal.test()
 
 
-    def test_invert(self):
-        """ Test logical not on test signal. """
+    def test_clone(self):
+        """ Test creation of an identical copy of signal. """
 
-        # make repeatable random sequences
-        random.seed(1)
-
-        # iterate test on several random signals
-        for t in range(20):
-
-            # create random signal
-            signal_in = vebis.Signal()
-            signal_in.noise(0,50)
-
-            # from original signal to itself through a doble not
-            signal_out = ~ ~signal_in
-
-            # compare original test signal and output signal
-            self.assertEqual(signal_in,signal_out)
+        # compare original test signal and output signal
+        self.assertEqual(self.signal,self.signal.clone())
 
 
-    def test_offset(self):
-        """ Test signal offset get and set. """
+    def test_shift(self):
+        """ Test signal shifting. """
 
-        # get and set offset
-        original_offset = self.signal.offset()
-        self.signal.offset(111)
+        # shift forward, backward and to same place again
+        original = self.signal.clone()
+        self.signal.shift(13)
+        self.signal.shift(-23)
+        self.signal.shift(10)
 
         # test expected offsets
-        self.assertEqual(0,original_offset)
-        self.assertEqual(111,self.signal.offset())
+        self.assertEqual(original,self.signal)
 
 
     def test_reverse(self):
@@ -86,11 +74,33 @@ class TestVebis(unittest.TestCase):
         self.assertEqual(original,self.signal)
 
 
-    def test_clone(self):
+    def test__intersect(self):
         """ Test creation of an identical copy of signal. """
 
         # compare original test signal and output signal
-        self.assertEqual(self.signal,self.signal.clone())
+        result = vb.Signal((0,6,[1,2,3,4]))._intersect(
+                vb.Signal((-1,8,[2,3,4,5,7,8])))
+        self.assertEqual((0,6,0,3,0,0,3,0),result)
+
+
+    def test_invert(self):
+        """ Test logical not on test signal. """
+
+        # make repeatable random sequences
+        random.seed(1)
+
+        # iterate test on several random signals
+        for t in range(20):
+
+            # create random signal
+            signal_in = vb.Signal()
+            signal_in.noise(0,50)
+
+            # from original signal to itself through a doble not
+            signal_out = ~ ~signal_in
+
+            # compare original test signal and output signal
+            self.assertEqual(signal_in,signal_out)
 
 
     def test_logic(self):
@@ -102,12 +112,12 @@ class TestVebis(unittest.TestCase):
         random.seed(1)
 
         # iterate test on several random signals
-        for t in range(20):
+        for t in range(1):
 
             # create random signals
-            in_a = vebis.Signal()
+            in_a = vb.Signal()
             in_a.noise(0,20)
-            in_b = vebis.Signal()
+            in_b = vb.Signal()
             in_b.noise(0,20)
 
             # direct xor
@@ -124,8 +134,8 @@ class TestVebis(unittest.TestCase):
         """ Test integral of signal computation. """
 
         self.assertEqual(30,self.signal.integral(1))
-        self.assertEqual(31,self.signal.integral(0))
-        self.assertEqual(31,(~self.signal).integral(1))
+        self.assertEqual(33,self.signal.integral(0))
+        self.assertEqual(33,(~self.signal).integral(1))
         self.assertEqual(30,(~self.signal).integral(0))
 
 
@@ -139,30 +149,68 @@ class TestVebis(unittest.TestCase):
         for t in range(1):
 
             # create random signals
-            in_a = vebis.Signal()
-            in_a.noise(0,5)
-            in_b = vebis.Signal()
-            in_b.noise(0,5)
-            print in_a
-            print in_b
+            in_a = vb.Signal()
+            in_a.noise(0,6)
+            in_b = vb.Signal()
+            in_b.noise(0,6)
 
-            # direct xor
-            corr, time = in_a.correlation(in_b)
+            # compute dumb correlation
+            corr, times = dumb_correlation(in_a,in_b)
 
             # compare original test signal and output signal
             #self.assertEqual(xor1,xor2)
             pl.figure(1)
             pl.subplot(3,1,1)
-            pl.xlim(0,5)
+            pl.xlim(0,10)
             pl.ylim(-0.1,1.1)
             in_a.plot() 
             pl.subplot(3,1,2)
-            pl.xlim(0,5)
+            pl.xlim(0,10)
             pl.ylim(-0.1,1.1)
             in_b.plot() 
             pl.subplot(3,1,3)
-            pl.plot(time,corr)
+            pl.grid()
+            pl.plot(times,corr)
             pl.show()
+
+
+def dumb_correlation(self,other):
+        """ Returns the unormalized correlation function of two signals
+        (*self* and *other*). """
+
+        # simplify variables access
+        sig_a = self.clone()
+        print 'other=',other
+        print 'sig_a=',sig_a
+
+        # take the first edge of signal B as origin. Keep signal B fixed in
+        # time and slide signal A. To start, shift A to put A end on B start.
+        shift = other.stime - sig_a.etime
+        sig_a.stime = sig_a.stime + shift
+        sig_a.etime = sig_a.etime + shift
+        for i in range(len(sig_a.ctimes)):
+            sig_a.ctimes[i] = sig_a.ctimes[i] + shift
+
+        # compute correlation
+        corr = []
+        times = []
+        for t in range(self.etime-self.stime+other.etime-other.stime-1):
+
+            # shift right A by 1 unit
+            sig_a.stime = sig_a.stime + 1
+            sig_a.etime = sig_a.etime + 1
+            for i in range(len(sig_a.ctimes)):
+                sig_a.ctimes[i] = sig_a.ctimes[i] + 1
+
+            print 'sig_a=',sig_a
+            print 'XOR=',sig_a ^ other
+            # correlation among signal A and B
+            corr += [(sig_a ^ other).integral(0,mean=True) * 2 - 1]
+            times += [t + shift + 1]
+            print 'corr=',corr
+            print 'times=',times
+
+        return corr, times
 
 
 # main
