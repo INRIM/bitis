@@ -36,71 +36,192 @@ import matplotlib.pyplot as pl
 class TestVebis(unittest.TestCase):
 
     def setUp(self):
+        """ Prepare testing signals """
 
         # test signal instance
-        self.signal = vb.Signal()
-        self.signal.test()
+        self.test = vb.Signal()
+        self.test.test()
+
+        # test signals: a base signal and its shifted copies.
+        # Graph of base signal __|^|_|^^ """
+        times = [0,2,3,4,6]
+        self.base = vb.Signal(times,slevel=0,tscale=1)
+        self.shift1 = vb.Signal([i + 1 for i in times],slevel=0,tscale=1)
+        self.shift2 = vb.Signal([i + 2 for i in times],slevel=0,tscale=1)
+        self.shift3 = vb.Signal([i + 3 for i in times],slevel=0,tscale=1)
+        self.shift4 = vb.Signal([i + 4 for i in times],slevel=0,tscale=1)
+        self.shift5 = vb.Signal([i + 5 for i in times],slevel=0,tscale=1)
+        self.shift6 = vb.Signal([i + 6 for i in times],slevel=0,tscale=1)
+        self.shift7 = vb.Signal([i + 7 for i in times],slevel=0,tscale=1)
 
 
     def test_clone(self):
         """ Test creation of an identical copy of signal. """
 
         # compare original test signal and output signal
-        self.assertEqual(self.signal,self.signal.clone())
+        self.assertEqual(self.test,self.test.clone())
 
 
     def test_shift(self):
         """ Test signal shifting. """
 
         # shift forward, backward and to same place again
-        original = self.signal.clone()
-        self.signal.shift(13)
-        self.signal.shift(-23)
-        self.signal.shift(10)
+        testing= self.test.clone()
+        testing.shift(13)
+        testing.shift(-23)
+        testing.shift(10)
 
         # test expected offsets
-        self.assertEqual(original,self.signal)
+        self.assertEqual(self.test,testing)
 
 
     def test_reverse(self):
         """ Test signal edge reversing. """
 
-        # reverse twice
-        original = self.signal.clone()
-        self.signal.reverse()
-        self.signal.reverse()
+        # reverse 
+        testing = self.base.clone()
+        testing.reverse()
 
-        # compare original test signal and output signal
-        self.assertEqual(original,self.signal)
+        # compare expected signal and testing result
+        expected = vb.Signal([0,2,3,4,6],slevel=1,tscale=1)
+        self.assertEqual(expected,testing)
 
 
     def test__intersect(self):
-        """ Test creation of an identical copy of signal. """
+        """ Test intersection parameters. """
 
-        # compare original test signal and output signal
-        result = vb.Signal((0,6,[1,2,3,4]))._intersect(
-                vb.Signal((-1,8,[2,3,4,5,7,8])))
-        self.assertEqual((0,6,0,3,0,0,3,0),result)
+        testing = self.base._intersect(self.base)
+        self.assertEqual((0,6,1,3,0,1,3,0),testing)
+
+        testing = self.base._intersect(self.shift1)
+        self.assertEqual((1,6,1,3,0,1,3,0),testing)
+
+        testing = self.base._intersect(self.shift2)
+        self.assertEqual((2,6,2,3,1,1,2,0),testing)
+
+        testing = self.base._intersect(self.shift3)
+        self.assertEqual((3,6,3,3,0,1,1,0),testing)
+
+        testing = self.base._intersect(self.shift4)
+        self.assertEqual((4,6,4,3,1,1,0,0),testing)
+
+        testing = self.base._intersect(self.shift5)
+        self.assertEqual((5,6,4,3,1,1,0,0),testing)
+        # sospetto ? B non correttamente detettato
+
+        testing = self.base._intersect(self.shift6)
+        self.assertEqual(None,testing)
+
+        testing = self.base._intersect(self.shift7)
+        self.assertEqual(None,testing)
 
 
     def test_invert(self):
         """ Test logical not on test signal. """
 
-        # make repeatable random sequences
-        random.seed(1)
+        # from original signal to itself through a doble not
+        testing = ~ ~self.base
 
-        # iterate test on several random signals
-        for t in range(20):
+        # compare original test signal and output signal
+        self.assertEqual(self.base,testing)
 
-            # create random signal
-            signal_in = vb.Signal()
-            signal_in.noise(0,50)
 
-            # from original signal to itself through a doble not
-            signal_out = ~ ~signal_in
+    def test_and(self):
+        """ Test logical and on test signal. """
 
-            # compare original test signal and output signal
-            self.assertEqual(signal_in,signal_out)
+        testing = self.base & self.base
+        self.assertEqual(self.base,testing)
+
+        testing = self.base & self.shift1
+        expected = vb.Signal([1,5,6],slevel=0,tscale=1)
+        self.assertEqual(expected,testing)
+
+        testing = self.base & self.shift2
+        expected = vb.Signal([2,4,5,6],slevel=0,tscale=1)
+        self.assertEqual(expected,testing)
+
+        testing = self.base & self.shift3
+        expected = vb.Signal([3,5,6],slevel=0,tscale=1)
+        self.assertEqual(expected,testing)
+
+        testing = self.base & self.shift4
+        expected = vb.Signal([4,6],slevel=0,tscale=1)
+        self.assertEqual(expected,testing)
+
+        testing = self.base & self.shift5
+        expected = vb.Signal([5,6],slevel=0,tscale=1)
+        self.assertEqual(expected,testing)
+
+        testing = self.base & self.shift6
+        expected = None
+        self.assertEqual(expected,testing)
+
+        testing = self.base & self.shift7
+        expected = None
+        self.assertEqual(expected,testing)
+
+
+    def test_or(self):
+        """ Test logical or on test signal. """
+
+        testing = self.base | self.base
+        self.assertEqual(self.base,testing)
+
+        testing = self.base | self.shift1
+        expected = vb.Signal([1,2,6],slevel=0,tscale=1)
+        self.assertEqual(expected,testing)
+
+        testing = self.base | self.shift2
+        expected = vb.Signal([2,3,4,6],slevel=1,tscale=1)
+        self.assertEqual(expected,testing)
+
+        testing = self.base | self.shift3
+        expected = vb.Signal([3,4,6],slevel=0,tscale=1)
+        self.assertEqual(expected,testing)
+
+        testing = self.base | self.shift4
+        expected = vb.Signal([4,6],slevel=1,tscale=1)
+        self.assertEqual(expected,testing)
+
+        testing = self.base | self.shift5
+        expected = vb.Signal([5,6],slevel=1,tscale=1)
+        self.assertEqual(expected,testing)
+
+
+    def test_xor(self):
+        """ Test logical xor on test signal. """
+
+        testing = self.base ^ self.base
+        expected = vb.Signal([0,6],slevel=0,tscale=1)
+        self.assertEqual(expected,testing)
+
+        testing = self.base ^ self.shift1
+        expected = vb.Signal([1,2,5,6],slevel=0,tscale=1)
+        self.assertEqual(expected,testing)
+
+        testing = self.base ^ self.shift2
+        expected = vb.Signal([2,3,5,6],slevel=1,tscale=1)
+        self.assertEqual(expected,testing)
+
+        testing = self.base ^ self.shift3
+        expected = vb.Signal([3,4,5,6],slevel=0,tscale=1)
+        self.assertEqual(expected,testing)
+
+        testing = self.base ^ self.shift4
+        expected = vb.Signal([4,6],slevel=1,tscale=1)
+        self.assertEqual(expected,testing)
+
+        testing = self.base ^ self.shift5
+        expected = vb.Signal([5,6],slevel=1,tscale=1)
+        self.assertEqual(expected,testing)
+
+        testing = self.base ^ self.shift6
+        expected = None
+        self.assertEqual(expected,testing)
+
+        testing = self.base ^ self.shift7
+        expected = None
+        self.assertEqual(expected,testing)
 
 
     def test_logic(self):
@@ -112,13 +233,13 @@ class TestVebis(unittest.TestCase):
         random.seed(1)
 
         # iterate test on several random signals
-        for t in range(1):
+        for t in range(20):
 
             # create random signals
             in_a = vb.Signal()
-            in_a.noise(0,20)
+            in_a.noise(0,100,freq_mean=0.1,width_mean=3)
             in_b = vb.Signal()
-            in_b.noise(0,20)
+            in_b.noise(-10,90,freq_mean=0.3,width_mean=2)
 
             # direct xor
             xor1 = in_a ^ in_b
@@ -133,10 +254,10 @@ class TestVebis(unittest.TestCase):
     def test_integral(self):
         """ Test integral of signal computation. """
 
-        self.assertEqual(30,self.signal.integral(1))
-        self.assertEqual(33,self.signal.integral(0))
-        self.assertEqual(33,(~self.signal).integral(1))
-        self.assertEqual(30,(~self.signal).integral(0))
+        self.assertEqual(30,self.test.integral(1))
+        self.assertEqual(33,self.test.integral(0))
+        self.assertEqual(33,(~self.test).integral(1))
+        self.assertEqual(30,(~self.test).integral(0))
 
 
     def test_correlation(self):
@@ -150,65 +271,69 @@ class TestVebis(unittest.TestCase):
 
             # create random signals
             in_a = vb.Signal()
-            in_a.noise(0,6)
+            in_a.noise(0,7)
             in_b = vb.Signal()
-            in_b.noise(0,6)
+            in_b.noise(0,7)
 
             # compute dumb correlation
-            corr, times = dumb_correlation(in_a,in_b)
+            expected = dumb_correlation(in_a,in_b,normalize=False)
+            testing = in_a.correlation(in_b,normalize=False)
+            print 'expected=',expected
+            print 'testing=',testing
+
+#            self.assertEqual(expected,testing)
 
             # compare original test signal and output signal
-            #self.assertEqual(xor1,xor2)
             pl.figure(1)
-            pl.subplot(3,1,1)
+            pl.subplot(4,1,1)
             pl.xlim(0,10)
             pl.ylim(-0.1,1.1)
             in_a.plot() 
-            pl.subplot(3,1,2)
+            pl.subplot(4,1,2)
             pl.xlim(0,10)
             pl.ylim(-0.1,1.1)
             in_b.plot() 
-            pl.subplot(3,1,3)
+            pl.subplot(4,1,3)
             pl.grid()
+            corr, times = expected
+            pl.plot(times,corr)
+            pl.subplot(4,1,4)
+            pl.grid()
+            corr, times = testing
             pl.plot(times,corr)
             pl.show()
 
 
-def dumb_correlation(self,other):
+def dumb_correlation(self,other,normalize=False):
         """ Returns the unormalized correlation function of two signals
         (*self* and *other*). """
 
         # simplify variables access
         sig_a = self.clone()
-        print 'other=',other
-        print 'sig_a=',sig_a
 
         # take the first edge of signal B as origin. Keep signal B fixed in
         # time and slide signal A. To start, shift A to put A end on B start.
-        shift = other.stime - sig_a.etime
-        sig_a.stime = sig_a.stime + shift
-        sig_a.etime = sig_a.etime + shift
-        for i in range(len(sig_a.ctimes)):
-            sig_a.ctimes[i] = sig_a.ctimes[i] + shift
+        shift = other.times[0] - self.times[-1]
+        for i in range(len(sig_a.times)):
+            sig_a.times[i] = sig_a.times[i] + shift
 
         # compute correlation
         corr = []
         times = []
-        for t in range(self.etime-self.stime+other.etime-other.stime-1):
+        for t in range(self.times[-1] - self.times[0]
+                + other.times[-1] - other.times[0] - 1):
 
             # shift right A by 1 unit
-            sig_a.stime = sig_a.stime + 1
-            sig_a.etime = sig_a.etime + 1
-            for i in range(len(sig_a.ctimes)):
-                sig_a.ctimes[i] = sig_a.ctimes[i] + 1
+            for i in range(len(sig_a.times)):
+                sig_a.times[i] = sig_a.times[i] + 1
 
-            print 'sig_a=',sig_a
-            print 'XOR=',sig_a ^ other
             # correlation among signal A and B
-            corr += [(sig_a ^ other).integral(0,mean=True) * 2 - 1]
+            if normalize:
+                corr += [(sig_a ^ other).integral(0,normalize) * 2 - 1]
+            else:
+                corr += [(sig_a ^ other).integral(0,normalize=False)]
+
             times += [t + shift + 1]
-            print 'corr=',corr
-            print 'times=',times
 
         return corr, times
 
