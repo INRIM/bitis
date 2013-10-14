@@ -52,23 +52,23 @@ class Signal:
     signal level after the last change is equal to initial value, if changes
     are even, otherwise is inverted. """
 
-    # a test signal with a sequence of primes as timing changes
-    TEST_SIGNAL = [0,1,2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61]
+    # a test signal with a sequence of primes as edges timing
+    TEST_EDGES = [0,1,2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61]
 
 
-    def __init__(self,signal=[],initial_value=0,time_offset=0,
+    def __init__(self,edges=[],initial_value=0,time_offset=0,
             time_scale=1000):
 
         # sequence of signal changes times
-        if signal:
-            self.signal = signal
+        if edges:
+            self.edges = edges
         else:
-            self.signal = []
+            self.edges = []
         # signal level before the first change
         self.initial_value = initial_value
         # number of signal changes
         try:
-            self.length = len(signal)
+            self.length = len(edges)
         except:
             self.length = 0
         # time offset affecting all signal changes
@@ -79,8 +79,8 @@ class Signal:
 
     def __str__(self):
        
-        descr = '%s\n' % self.__class__
-        descr += '  signal: %s\n' % self.signal
+        descr = '%s\n' % object.__str__(self)
+        descr += '  edges: %s\n' % self.edges
         descr += '  initial value: %d\n' % self.initial_value
         descr += '  length: %d\n' % self.length
         descr += '  time offset: %d\n' % self.time_offset
@@ -94,8 +94,8 @@ class Signal:
         data is destroyed. """
 
         # fill current signal changes and its length attribute
-        self.signal = self.TEST_SIGNAL
-        self.length = len(self.TEST_SIGNAL)
+        self.edges = self.TEST_EDGES
+        self.length = len(self.TEST_EDGES)
 
 
     def clone(self):
@@ -122,18 +122,18 @@ class Signal:
         Returns the same input signal object with the updated signal. """
 
         # simplify var access
-        signal = self.signal
+        edges = self.edges
         length = self.length
 
         # reversal time adjusting constant
-        time_adjust = signal[-1]
+        time_adjust = edges[-1]
 
         # reverse edges times
         for i in range(length-1,-1,-1):
-            signal[i] = time_adjust - signal[i]
+            edges[i] = time_adjust - edges[i]
 
         # edges sequence needs to have ascending times
-        signal.sort()
+        edges.sort()
 
 
     def jitter(self,jitter_stddev=0):
@@ -145,23 +145,23 @@ class Signal:
         jitter_stddev *= self.time_scale
 
         # simplify access
-        signal = self.signal
+        edges = self.edges
         length = self.length
 
         # add jitter to signal edges
         for edge in range(1,length-1):
             # if current edge has room to be moved forward or back, add jitter.
-            if signal[i+1] - signal[i-1] > 2:
-                signal[i] += int(random.gauss(0.0,jitter_stddev))
+            if edges[i+1] - edges[i-1] > 2:
+                edges[i] += int(random.gauss(0.0,jitter_stddev))
                 # limit jitter range inside prevoius and next edges
-                if signal[i] <= signal[i-1]:
-                    signal[i] = signal[i-1] + 1
-                elif signal[i] >= signal[i+1]:
-                    signal[i] = signal[i+1] - 1
+                if edges[i] <= edges[i-1]:
+                    edges[i] = edges[i-1] + 1
+                elif edges[i] >= edges[i+1]:
+                    edges[i] = edges[i+1] - 1
 
 
     def noise(self,time_start,time_end,freq_mean=1,freq_stddev=1,
-            width_mean=0.1,width_stddev=0.1):
+            width_mean=0.1,width_stddev=0.1,random_initial_value=True):
         """ Fill current signal object with disturbing pulses. Pulses time
         domain extends from *time_start* to *time_end* seconds. Pulses
         frequency and width follow a gaussian distribution: *freq_mean* and
@@ -182,8 +182,8 @@ class Signal:
         pause_stddev = math.sqrt(freq_stddev**2 - width_stddev**2) / 2
 
         # make noise pulses
-        self.signal = []
-        noise = self.signal
+        self.edges = []
+        noise = self.edges
         last_pause_end = 0
         while True:
             # not really true gauss: negative branch reflected over positive and
@@ -197,42 +197,48 @@ class Signal:
             else:
                 break
 
+        # set a random intial value and edges sequence length
+        self.initial_value = pause & 1
+        self.length = len(noise)
 
-    def __eq__(self,signal):
+
+    def __eq__(self,other):
         """ Signal objetcs equality test. """
 
-        if self.__dict__ == signal.__dict__:
+        if self.__dict__ == other.__dict__:
             return True
         else:
             try:
                 print '1 ****'
                 print self
                 print '2 ****'
-                print signal
+                print other
             except:
                 pass
+            return False
 
 
-    def __and__(self,signal):
+    def _bioper(self,other,operator):
         """ Compute the logic and of twoi given signal object: *self* and
         *signal*. Returns a signal object with the and of the two input
         signals. """
 
         # create signal object for and storage
-        and_obj = Signal()
-        sig_and = and_obj.signal
+        out_obj = Signal()
+        ed_out = out_obj.edges
 
         # simplify var access
-        sig_a = self.signal
+        ed_a = self.edges
         len_a = self.length
-        sig_b = signal.signal
-        len_b = signal.length
-        off_ba = signal.time_offset - self.time_offset
+        ed_b = other.edges
+        len_b = other.length
+        off_ba = other.time_offset - self.time_offset
 
-        # status vars of a two input logic and: inputs a and b, output a_and_b.
-        a = 0
-        b = 0
-        a_and_b = 0
+        # initial status vars of a two input logic: inputs a and b, output.
+        in_a = self.initial_value
+        in_b = other.initial_value
+        out = operator(in_a,in_b)
+        out_obj.initial_value = out
 
         # get all edges, one at a time, from the two lists as sorted by
         # ascending time, do it until the end of one of the two lists is
@@ -243,129 +249,86 @@ class Signal:
             # get the next edge in time. If the next edge makes a change to the
             # and output, append it to the output anded pulses and update and
             # logic output (a_and_b).
-            # Always update and logic inputs (a,b) and list pointers (i,j)
-            if sig_a[i] < sig_b[j] + off_ba:
-                a = not (i & 1) ^ self.initial_value
-                if a_and_b != (a and b):
-                    sig_and.append(sig_a[i])
-                    a_and_b = a and b
+            # Always update logic inputs (a,b) and list pointers (i,j)
+            if ed_a[i] < ed_b[j] + off_ba:
+                in_a = not in_a
+                if out != operator(in_a,in_b):
+                    ed_out.append(ed_a[i])
+                    out = operator(in_a,in_b)
                 i += 1
-            elif sig_a[i] > sig_b[j] + off_ba:
-                b = not (j & 1) ^ signal.initial_value
-                if a_and_b != (a and b):
-                    sig_and.append(sig_b[j] + off_ba)
-                    a_and_b = a and b
+            elif ed_a[i] > ed_b[j] + off_ba:
+                in_b = not in_b
+                if out != operator(in_a,in_b):
+                    ed_out.append(ed_b[j] + off_ba)
+                    out = operator(in_a,in_b)
                 j += 1
             else:
-                a = not (i & 1) ^ self.initial_value
-                b = not (j & 1) ^ signal.initial_value
-                if a_and_b != (a and b):
-                    sig_and.append(sig_a[i])
-                    a_and_b = a and b
+                in_a = not in_a
+                in_b = not in_b
+                if out != operator(in_a,in_b):
+                    ed_out.append(ed_a[i])
+                    out = operator(in_a,in_b)
                 i += 1
                 j += 1
 
+        # if one of ed_a or ed_b is exausted, the remaining part of
+        # the other is appended unchanged to the result: equivalent to oring
+        # it with zero.
+        if i >= len_a and j < len_b:
+            if operator(in_a,0) != operator(in_a,1):
+                ed_out.extend([change + off_ba for change in ed_b[j:]])
+        if i < len_a and j >= len_b:
+            if operator(in_b,0) != operator(in_b,1):
+                ed_out.extend(ed_a[i:])
+
         # set initial value, length and time offset
-        and_obj.initial_value = self.initial_value and signal.initial_value
-        and_obj.length = len(sig_and)
-        and_obj.time_offset = self.time_offset
+        out_obj.length = len(ed_out)
+        out_obj.time_offset = self.time_offset
 
-        return and_obj
+        return out_obj
 
 
-    def __or__(self,signal):
+    def __and__(self,other):
+        """ Compute the logic and of twoi given signal object: *self* and
+        *signal*. Returns a signal object with the and of the two input
+        signals. """
+
+        return self._bioper(other,lambda a,b: a and b)
+
+
+    def __or__(self,other):
         """ Compute the logic or of two given signal object: *self* and
         *signal*. Returns a signal object with the or of the two input
         signals. """
 
-        # create signal object for and storage
-        or_obj = Signal()
-        sig_or = or_obj.signal
-
-        # simplify var access
-        sig_a = self.signal
-        len_a = self.length
-        sig_b = signal.signal
-        len_b = signal.length
-        off_ba = signal.time_offset - self.time_offset
-
-        # status vars of a two input logic or: inputs a and b, output a_or_b.
-        a = 0
-        b = 0
-        a_or_b = 0
-
-        # get all edges, one at a time, from the two lists as sorted by
-        # ascending time, do it until the end of one of the two lists is
-        # reached.
-        i = 0
-        j = 0
-        while i < len_a and j < len_b:
-            # get the next edge in time. If the next edge makes a change to the
-            # or output, append it to the output ored pulses and update or logic
-            # output (a_or_b).
-            # Always update or logic inputs (a,b) and list pointers (i,j)
-            if sig_a[i] < sig_b[j] + off_ba:
-                a = not (i & 1) ^ self.initial_value
-                if a_or_b != (a | b):
-                    sig_or.append(sig_a[i])
-                    a_or_b = (a | b)
-                i += 1
-            elif sig_a[i] > sig_b[j] + off_ba:
-                b = not (j & 1) ^ signal.initial_value
-                if a_or_b != (a | b):
-                    sig_or.append(sig_b[j] + off_ba)
-                    a_or_b = (a | b)
-                j += 1
-            else:
-                a = not (i & 1) ^ self.initial_value
-                b = not (j & 1) ^ signal.initial_value
-                if a_or_b != (a | b):
-                    sig_or.append(sig_a[i])
-                    a_or_b = (a | b)
-                i += 1
-                j += 1
-
-        # if one of sig_a or sig_b is exausted, the remaining part of
-        # the other is appended unchanged to the result: equivalent to oring
-        # it with zero.
-        if i >= len_a and j < len_b:
-            sig_or.extend([change + off_ba for change in sig_b[j:]])
-        if i < len_a and j >= len_b:
-            sig_or.extend(sig_a[i:])
-
-        # set initial value, length and time offset
-        or_obj.initial_value = self.initial_value or signal.initial_value
-        or_obj.length = len(sig_or)
-        or_obj.time_offset = self.time_offset
-
-        return or_obj
+        return self._bioper(other,lambda a,b: a or b)
 
 
-    def __xor__(self,signal):
+    def __xor__(self,other):
         """ Compute the logic xor of two given signal objects: *self* and
         *signal*. Returns a signal object with the xor of the two input
         signals. """
 
         # create signal object for xor storage
         xor_obj = Signal()
-        sig_xor = xor_obj.signal
+        ed_xor = xor_obj.edges
 
         # xor is the union of pulse edges sorted by time
-        sig_xor += self.signal + signal.signal
-        sig_xor.sort()
+        ed_xor += self.edges + other.edges
+        ed_xor.sort()
 
         # simultaneous edges cancel each other, so, if any, remove them.
         i = 0
-        while i < len(sig_xor) - 1:
-            if not sig_xor[i] - sig_xor[i + 1]:
-                del sig_xor[i]
-                del sig_xor[i]
+        while i < len(ed_xor) - 1:
+            if not ed_xor[i] - ed_xor[i + 1]:
+                del ed_xor[i]
+                del ed_xor[i]
             else:
                 i += 1
 
         # set initial value, length and time offset
-        xor_obj.initial_value = self.initial_value ^ signal.initial_value
-        xor_obj.length = len(sig_xor)
+        xor_obj.initial_value = self.initial_value ^ other.initial_value
+        xor_obj.length = len(ed_xor)
         xor_obj.time_offset = self.time_offset
 
         return xor_obj
@@ -387,9 +350,9 @@ class Signal:
         in which the signal is at one level. """
 
         integral = 0
-        signal = self.signal
-        for i in range(0,len(signal),2):
-            integral += signal[i + 1] - signal[i]
+        edges = self.edges
+        for i in range(0,len(edges),2):
+            integral += edges[i + 1] - edges[i]
 
         return integral
 
