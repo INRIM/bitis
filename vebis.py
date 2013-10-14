@@ -52,26 +52,17 @@ class Signal:
     are even, otherwise is inverted. """
 
     # a test signal with a sequence of primes as changes timing
-    TEST_TIMES = (-1,62,[0,1,2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61])
+    TEST_TIMES = [-1,0,1,2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,62]
 
 
     def __init__(self,times=None,slevel=0,tscale=1):
 
-        # sequence of signal (start,end,changes) times
+        # sequence of signal (start,changes,end) times
         if times:
-            self.stime = times[0]
-            self.etime = times[1]
-            self.ctimes = times[2]
-            # check for valid start and end times
-            if self.stime > self.ctimes[0]:
-                raise Exception('start time after first change time.')
-            if self.etime < self.ctimes[-1]:
-                raise Exception('end time before last change time.')
-        # undefined signal: no start/end times, no change times.
+            self.times = times
+        # undefined signal: no start, no change, no end times.
         else:
-            self.stime = None
-            self.etime = None
-            self.ctimes = []
+            self.times = []
         # signal level before the first change
         self.slevel = slevel
         # time scale of changes time (1=1s)
@@ -81,9 +72,7 @@ class Signal:
     def __str__(self):
        
         descr = '%s\n' % object.__str__(self)
-        descr += '  start time: %s\n' % self.stime
-        descr += '  end time: %s\n' % self.etime
-        descr += '  change times: %s\n' % self.ctimes
+        descr += '  times: %s\n' % self.times
         descr += '  start level: %d\n' % self.slevel
         descr += '  time scale: %d' % self.tscale
 
@@ -94,9 +83,7 @@ class Signal:
         """ Fill current signal object with a test signal. Previous signal
         times are destroyed. Start level and time scale are preserved. """
 
-        self.stime = self.TEST_TIMES[0]
-        self.etime = self.TEST_TIMES[1]
-        self.ctimes = self.TEST_TIMES[2]
+        self.times = self.TEST_TIMES
 
 
     def clone(self):
@@ -111,23 +98,25 @@ class Signal:
         *offset* is not specified, returns the time offset value (int)i
         stored in the signal object. Otherwise, set it. """
 
-        self.stime += offset
-        self.etime += offset
-        for i in range(len(self.ctimes)):
-                self.ctimes[i] += offset
+        for i in range(len(self.times)):
+                self.times[i] += offset
 
 
     def reverse(self):
-        """ Reverse the signal edge sequence: last edge becomes the first
-        and viceversa.Time intervals between all edges are preserved.
-        Returns the same input signal object with the updated signal. """
+        """ Reverse the signal edge sequence: last change becomes the first
+        and viceversa. Time intervals between all changes are preserved.
+        Returns the same input signal object with the updated times. """
 
-        # reverse edges times
-        for i in range(len(self.ctimes)-1,-1,-1):
-            self.ctimes[i] = self.etime - self.ctimes[i]
+        # set start level: if times number is odd, must be inverted.
+        if len(self.times) & 1:
+            self.slevel = not self.slevel
+
+        # reverse change times, not first and last times (start and end).
+        for i in range(len(self.times)-2,0,-1):
+            self.times[i] = self.times[-1] - self.times[i]
 
         # edges sequence needs to have ascending times
-        self.ctimes.sort()
+        self.times.sort()
 
 
     def jitter(self,jitter_stddev=0):
@@ -168,18 +157,16 @@ class Signal:
         pause_mean = 1 / freq_mean - width_mean
         pause_stddev = math.sqrt(freq_stddev**2 - width_stddev**2) / 2
 
-        # set start, end and a random start level
-        self.stime = start
-        self.etime = end
-        self.slevel = int(random.gauss(width_mean,width_stddev)) & 1
+        # set start and a random start level
+        self.times = [start]
+        self.slevel = random.randint(0,1)
 
         # insert first pause interval end
         last_pause_end = \
                 abs(int(random.gauss(pause_mean,pause_stddev))) + 1 + start
         if last_pause_end > end:
-            self.ctimes = []
+            self.times.append(end)
             return
-        self.ctimes = [last_pause_end]
 
         # make noise pulses
         while True:
@@ -189,8 +176,8 @@ class Signal:
             pause = abs(int(random.gauss(pause_mean,pause_stddev))) + 1
             if last_pause_end + width + pause > end:
                 break
-            self.ctimes.append(last_pause_end + pause)
-            self.ctimes.append(last_pause_end + pause + width)
+            self.times.append(last_pause_end)
+            self.times.append(last_pause_end + width)
             last_pause_end = last_pause_end + width + pause
 
 
@@ -214,8 +201,8 @@ class Signal:
         """ """
 
         # start and end times of signal A and B intersection
-        start = max(self.stime,other.stime)
-        end = min(self.etime,other.etime)
+        start = max(self.times[0],other.times[0])
+        end = min(self.times[-1],other.times[-1])
 
         # if no intersection, return none
         if start >= end:
@@ -223,37 +210,29 @@ class Signal:
 
         # find index of first change after start
         
-        for ia_start in range(len(self.ctimes)):
-            if self.ctimes[ia_start] >= start:
+        for ia_start in range(len(self.times)):
+            if self.times[ia_start] > start:
                 break
-        else:
-            ia_start = None
 
-        for ib_start in range(len(other.ctimes)):
-            if other.ctimes[ib_start] >= start:
+        for ib_start in range(len(other.times)):
+            if other.times[ib_start] > start:
                 break
-        else:
-            ib_start = None
 
         # find index of last change before end
 
-        for ia_end in range(-1,-len(self.ctimes)-1,-1):
-            if self.ctimes[ia_end] <= end:
-                ia_end += len(self.ctimes)
+        for ia_end in range(-1,-len(self.times)-1,-1):
+            if self.times[ia_end] < end:
+                ia_end += len(self.times)
                 break
-        else:
-            ia_end = None
 
-        for ib_end in range(-1,-len(other.ctimes)-1,-1):
-            if other.ctimes[ib_end] <= end:
-                ib_end += len(other.ctimes)
+        for ib_end in range(-1,-len(other.times)-1,-1):
+            if other.times[ib_end] < end:
+                ib_end += len(other.times)
                 break
-        else:
-            ib_end = None
 
         # compute level before first change after start
-        slevel_a = self.slevel ^ (bool(ia_start) & 1)
-        slevel_b = other.slevel ^ (bool(ib_start) & 1)
+        slevel_a = self.slevel ^ (~ia_start & 1)
+        slevel_b = other.slevel ^ (~ib_start & 1)
 
         return start,end,ia_start,ia_end,slevel_a,ib_start,ib_end,slevel_b
 
@@ -263,26 +242,31 @@ class Signal:
         *signal*. Returns a signal object with the and of the two input
         signals. """
 
+        # if one or both operand is none, return none as result.
+        if not self or not other:
+            return None
+
         # create output signal object
         out_sig = Signal()
 
-        # compute A and B time intersection paramenters
+        # compute A and B time intersection paramenters.
+        # If no intersection, return none.
+        intersection = self._intersect(other)
+        if not intersection:
+            return None
         start,end,ia_start,ia_end,slevel_a,ib_start,ib_end,slevel_b = \
-                self._intersect(other)
-
-        # set start and end
-        out_sig.stime = start
-        out_sig.etime = end
+            intersection
 
         # initial status vars of a two input logic: inputs a and b, output.
         in_a = slevel_a
         in_b = slevel_b
-        out = operator(in_a,in_b)
-        out_sig.slevel = out
+        out_sig.slevel = operator(in_a,in_b)
+        out = out_sig.slevel
 
         # get all edges, one at a time, from the two lists as sorted by
         # ascending time, do it until the end of one of the two lists is
         # reached.
+        out_sig.times = [start]
         ia = ia_start
         ib = ib_start
         while ia <= ia_end and ib <= ib_end:
@@ -290,36 +274,39 @@ class Signal:
             # and output, append it to the output anded pulses and update and
             # logic output (a_and_b).
             # Always update logic inputs (a,b) and list pointers (i,j)
-            if self.ctimes[ia] < other.ctimes[ib]:
+            if self.times[ia] < other.times[ib]:
                 in_a = not in_a
                 if out != operator(in_a,in_b):
-                    out_sig.ctimes.append(self.ctimes[ia])
-                    out = operator(in_a,in_b)
+                    out_sig.times.append(self.times[ia])
+                    out = not out
                 ia = ia + 1
-            elif self.ctimes[ia] > other.ctimes[ib]:
+            elif self.times[ia] > other.times[ib]:
                 in_b = not in_b
                 if out != operator(in_a,in_b):
-                    out_sig.ctimes.append(other.ctimes[ib])
-                    out = operator(in_a,in_b)
+                    out_sig.times.append(other.times[ib])
+                    out = not out
                 ib = ib + 1
             else:
                 in_a = not in_a
                 in_b = not in_b
                 if out != operator(in_a,in_b):
-                    out_sig.ctimes.append(self.ctimes[ia])
-                    out = operator(in_a,in_b)
+                    out_sig.times.append(self.times[ia])
+                    out = not out
                 ia = ia + 1
                 ib = ib + 1
 
         # if one of A or B is exausted, the remaining part of
         # the other is appended unchanged to the result: equivalent to oring
         # it with zero.
-        if ia >= ia_end and ib < ib_end:
+        if ia > ia_end and ib <= ib_end:
+            in_a = self.slevel ^ ((ia - 1) & 1)
             if operator(in_a,0) != operator(in_a,1):
-                out_sig.ctimes.extend(other.ctimes[ib:])
-        if ia < ia_end and ib >= ib_end:
+                out_sig.times.extend(other.times[ib:ib_end + 1])
+        elif ia <= ia_end and ib > ib_end:
+            in_b = other.slevel ^ ((ib - 1) & 1)
             if operator(in_b,0) != operator(in_b,1):
-                out_sig.ctimes.extend(self.ctimes[ia:])
+                out_sig.times.extend(self.times[ia:ia_end + 1])
+        out_sig.times.append(end)
 
         return out_sig
 
@@ -345,31 +332,42 @@ class Signal:
         *signal*. Returns a signal object with the xor of the two input
         signals. """
 
+        # if one or both operand is none, return none as result.
+        if not self or not other:
+            return None
+
         # create signal object for xor storage
         xor_sig = Signal()
 
-        # compute A and B time intersection paramenters
+        # compute A and B time intersection paramenters.
+        # If no intersection, return none.
+        intersection = self._intersect(other)
+        if not intersection:
+            return None
         start,end,ia_start,ia_end,slevel_a,ib_start,ib_end,slevel_b = \
-                self._intersect(other)
+            intersection
 
-        # set start, end and start level
-        xor_sig.stime = start
-        xor_sig.etime = end
+        # set start level
         xor_sig.slevel = slevel_a ^ slevel_b
 
         # xor is the union of pulse edges sorted by time
-        xor_sig.ctimes = self.ctimes[ia_start:ia_end+1] \
-                + other.ctimes[ib_start:ib_end+1]
-        xor_sig.ctimes.sort()
+        xor_sig.times = [start] + self.times[ia_start:ia_end+1] \
+                + other.times[ib_start:ib_end+1] + [end]
+        xor_sig.times.sort()
 
         # simultaneous edges cancel each other, so, if any, remove them.
-        i = 0
-        while i < len(xor_sig.ctimes) - 1:
-            if not xor_sig.ctimes[i] - xor_sig.ctimes[i + 1]:
-                del xor_sig.ctimes[i]
-                del xor_sig.ctimes[i]
+        i = 1 
+        while i < len(xor_sig.times) - 2:
+            if not xor_sig.times[i] - xor_sig.times[i + 1]:
+                del xor_sig.times[i]
+                del xor_sig.times[i]
             else:
                 i += 1
+
+        # the last couple do not cancel each other: one value must survive,
+        # it is the end time.
+        if not xor_sig.times[-2] - xor_sig.times[-1]:
+            del xor_sig.times[-1]
 
         return xor_sig
 
@@ -380,12 +378,12 @@ class Signal:
         start level inverted. """
 
         not_sig = self.clone()
-        not_sig.slevel = not self. slevel
+        not_sig.slevel = not self.slevel
 
         return not_sig
 
 
-    def integral(self,level=1,mean=False):
+    def integral(self,level=1,normalize=False):
         """ Returns the integral (int) of signal: the summation of all periods
         in which the signal is at the level specified by *level* argument. The
         summation is operated on the signal domain only: levels at 1 before the
@@ -393,9 +391,9 @@ class Signal:
 
         # do summation between first and last signal changes
         changes_int = 0
-        for i in range(0,len(self.ctimes),2):
+        for i in range(1,len(self.times),2):
             try:
-                changes_int = changes_int + self.ctimes[i + 1] - self.ctimes[i]
+                changes_int = changes_int + self.times[i + 1] - self.times[i]
             except:
                 pass
 
@@ -403,16 +401,16 @@ class Signal:
         if level ^ self.slevel:
             integral = changes_int
         else:
-            integral = self.etime - self.stime - changes_int
+            integral = self.times[-1] - self.times[0] - changes_int
 
-        # return mean if requested by mean argument
-        if mean:
-            integral = float(integral) / (self.etime - self.stime)
+        # return normalized if requested by normalized argument
+        if normalize:
+            integral = float(integral) / (self.times[-1] - self.times[0])
 
         return integral
 
 
-    def correlation(self,other):
+    def correlation(self,other,normalize=False):
         """ Returns the unormalized correlation function of two signals
         (*self* and *other*). """
 
@@ -421,25 +419,26 @@ class Signal:
         sig_b = other.clone()
 
         # take the first edge of signal B as origin. Keep signal B fixed in
-        # time and slide signal A. To start, shift A last edge on the first
-        # edge of B.
-        shift = sig_b.stime - sig_a.etime
+        # time and slide signal A. To start, shift A end on the first change
+        # of B.
+        shift = sig_b.times[0] - sig_a.times[-1] + 1
         print 'shift=',shift
-        for i in range(len(sig_a.ctimes)):
-            sig_a.ctimes[i] = sig_a.ctimes[i] + shift
+        for i in range(len(sig_a.times)):
+            sig_a.times[i] = sig_a.times[i] + shift
 
         # detect the values of the phasing variable corresponding to
         # the vertex of the correlation function
-        phi = edges_b[:]
+        phi = sig_b.times[:]
         print 'phi=',phi
-        for i in range(length_a-2,-1,-1):
-            off_aa = edges_a[i + 1] - edges_a[i]
+        for i in range(len(sig_a.times)-2,-1,-1):
+            off_aa = sig_a.times[i + 1] - sig_a.times[i]
             print 'off_aa=',off_aa
-            for j in range(length_b):
-                edges_b[j] += off_aa
-            phi += edges_b[:]
+            for j in range(len(sig_b.times)):
+                sig_b.times[j] += off_aa
+            phi += sig_b.times[:]
             print 'phi=',phi
         phi.sort()
+        del phi[-1]
 
         # keep only unique phase values
         k = 0
@@ -450,27 +449,40 @@ class Signal:
                 k += 1
         print 'phi=',phi
 
+        # set proper origin to phi values
+        adjust = shift - phi[0]
+        for k in range(len(phi)):
+            phi[k] = phi[k] + adjust
+        print 'phi=',phi
+
         # reset signal B edges to the original time values
-        edges_b = other.edges[:]
+        sig_b.times = other.times[:]
 
         # compute correlation function at previuosly computed phase values
-        signal_b.edges = edges_b
+
+        # correlation among signal A and B
         corr = []
-        for ph in phi:
+        last_ph = phi[0]
+        for ph in phi[:-1]:
             print 'ph=',ph
+            dph = ph - last_ph
+            last_ph = ph
             # apply phase to signal A
-            for i in range(length_a):
-                edges_a[i] += ph
-            print 'edges_a=',edges_a
-            print 'edges_b=',edges_b
+            for i in range(len(sig_a.times)):
+                sig_a.times[i] = sig_a.times[i] + dph
+            print 'sig_a.times=',sig_a.times
+            print 'sig_b.times=',sig_b.times
 
             # correlation among signal A and B
-            signal_a.edges = edges_a
-            corr += [(signal_a ^ signal_b).integral(0)]
-            print 'xor=',signal_a ^ signal_b
+            if normalize:
+                corr += [(sig_a ^ other).integral(0,normalize) * 2 - 1]
+            else:
+                corr += [(sig_a ^ other).integral(0,normalize=False)]
+            print 'xor=',sig_a ^ sig_b
             print 'corr=',corr
 
-        return corr, phi
+        return corr, phi[:-1]
+
 
 
     def plot(self,*args,**kargs):
@@ -478,12 +490,10 @@ class Signal:
 
         from matplotlib.pyplot import plot
 
-        # generate signal levels and times
+        # generate signal levels
         levels = [self.slevel]
-        for i in range(len(self.ctimes)):
+        for i in range(1,len(self.times)):
             levels += [not levels[-1]]
-        levels += [levels[-1]]
-        times = [self.stime] + self.ctimes + [self.etime]
 
         # set proper draw style for square waves
         if not kargs:
@@ -492,8 +502,8 @@ class Signal:
 
         # if there are given args, pass them
         if args:
-            plot(times,levels,*args,**kargs)
+            plot(self.times,levels,*args,**kargs)
         else:
-            plot(times,levels,**kargs)
+            plot(self.times,levels,**kargs)
 
 #### END
