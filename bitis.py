@@ -1,29 +1,28 @@
 #!/usr/bin/python
 # .+
-# .context    : Binary Signal Processing
-# .title      : Vectorial Binary Signal Processing Library
+# .context    : Binary Timed Signal Processing Processing Library
+# .title      : BITIS main module
 # .kind	      : python source
 # .author     : Fabrizio Pollastri
 # .site	      : Torino - Italy
 # .creation   :	26-Sep-2013
 # .copyright  :	(c) 2013 Fabrizio Pollastri
-# .license    : GNU Lesser General Public License (see below)
+# .license    : GNU General Public License (see below)
 #
-# This file is part of "VEBIS".
+# This file is part of "BITIS, Binary Timed Signal Processig Library".
 #
-# VEBIS is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as
-# published by the Free Software Foundation, either version 3 of
-# the License, or (at your option) any later version.
+# BITIS is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# VEBIS is distributed in the hope that it will be useful,
+# BITIS is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Lesser General Public
-# License along with VEBIS. If not, see <http://www.gnu.org/licenses/>.
-#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 # TODO
 # - extend vbs format to support odd number of pulses/edges
@@ -179,6 +178,10 @@ class Signal:
             self.times.append(last_pause_end)
             self.times.append(last_pause_end + width)
             last_pause_end = last_pause_end + width + pause
+
+        # add end if not already reached by last pulse
+        if self.times[-1] < end:
+            self.times.append(end)
 
 
     def __eq__(self,other):
@@ -426,19 +429,24 @@ class Signal:
         for i in range(len(sig_a.times)):
             sig_a.times[i] = sig_a.times[i] + shift
 
+        # save shifted sig_a times for later use
+        sig_a_saved = sig_a.clone()
+
         # detect the values of the phasing variable corresponding to
         # the vertex of the correlation function
-        phi = sig_b.times[:]
+        phi = sig_a.times[:]
         print 'phi=',phi
-        for i in range(len(sig_a.times)-2,-1,-1):
-            off_aa = sig_a.times[i + 1] - sig_a.times[i]
-            print 'off_aa=',off_aa
-            for j in range(len(sig_b.times)):
-                sig_b.times[j] += off_aa
-            phi += sig_b.times[:]
+        for i in range(len(sig_b.times)-1):
+            off_bb = sig_b.times[i + 1] - sig_b.times[i]
+            if i == 0 or i == len(sig_b.times)-2:
+                off_bb = off_bb - 1
+            print 'off_bb=',off_bb
+            for j in range(len(sig_a.times)):
+                sig_a.times[j] += off_bb
+            phi += sig_a.times[:]
             print 'phi=',phi
         phi.sort()
-        del phi[-1]
+        #del phi[-1]
 
         # keep only unique phase values
         k = 0
@@ -456,14 +464,14 @@ class Signal:
         print 'phi=',phi
 
         # reset signal B edges to the original time values
-        sig_b.times = other.times[:]
+        sig_a.times = sig_a_saved.times[:]
 
         # compute correlation function at previuosly computed phase values
 
         # correlation among signal A and B
         corr = []
         last_ph = phi[0]
-        for ph in phi[:-1]:
+        for ph in phi:
             print 'ph=',ph
             dph = ph - last_ph
             last_ph = ph
@@ -481,7 +489,7 @@ class Signal:
             print 'xor=',sig_a ^ sig_b
             print 'corr=',corr
 
-        return corr, phi[:-1]
+        return corr, phi
 
 
 

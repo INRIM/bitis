@@ -1,58 +1,59 @@
 #!/usr/bin/python
 # .+
-# .context    : Vectorial Binary Signal Processing Library
+# .context    : Binary Timed Signal Processing Library
 # .title      : Test Suite
 # .kind	      : python source
 # .author     : Fabrizio Pollastri
 # .site	      : Torino - Italy
 # .creation   :	26-Sep-2013
 # .copyright  :	(c) 2013 Fabrizio Pollastri
-# .license    : GNU Lesser General Public License (see below)
+# .license    : GNU General Public License (see below)
 #
-# This file is part of "VEBIS".
+# This file is part of "BITIS, Binary Timed Signal Processing Library".
 #
-# VEBIS is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as
-# published by the Free Software Foundation, either version 3 of
-# the License, or (at your option) any later version.
+# BITIS is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# VEBIS is distributed in the hope that it will be useful,
+# BITIS is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Lesser General Public
-# License along with VEBIS. If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 # .-
 
-import vebis as vb
+
+import bitis as bt
 import random
 import unittest
 
 import matplotlib.pyplot as pl
 
 
-class TestVebis(unittest.TestCase):
+class TestBitis(unittest.TestCase):
 
     def setUp(self):
         """ Prepare testing signals """
 
         # test signal instance
-        self.test = vb.Signal()
+        self.test = bt.Signal()
         self.test.test()
 
         # test signals: a base signal and its shifted copies.
         # Graph of base signal __|^|_|^^ """
         times = [0,2,3,4,6]
-        self.base = vb.Signal(times,slevel=0,tscale=1)
-        self.shift1 = vb.Signal([i + 1 for i in times],slevel=0,tscale=1)
-        self.shift2 = vb.Signal([i + 2 for i in times],slevel=0,tscale=1)
-        self.shift3 = vb.Signal([i + 3 for i in times],slevel=0,tscale=1)
-        self.shift4 = vb.Signal([i + 4 for i in times],slevel=0,tscale=1)
-        self.shift5 = vb.Signal([i + 5 for i in times],slevel=0,tscale=1)
-        self.shift6 = vb.Signal([i + 6 for i in times],slevel=0,tscale=1)
-        self.shift7 = vb.Signal([i + 7 for i in times],slevel=0,tscale=1)
+        self.base = bt.Signal(times,slevel=0,tscale=1)
+        self.shift1 = bt.Signal([i + 1 for i in times],slevel=0,tscale=1)
+        self.shift2 = bt.Signal([i + 2 for i in times],slevel=0,tscale=1)
+        self.shift3 = bt.Signal([i + 3 for i in times],slevel=0,tscale=1)
+        self.shift4 = bt.Signal([i + 4 for i in times],slevel=0,tscale=1)
+        self.shift5 = bt.Signal([i + 5 for i in times],slevel=0,tscale=1)
+        self.shift6 = bt.Signal([i + 6 for i in times],slevel=0,tscale=1)
+        self.shift7 = bt.Signal([i + 7 for i in times],slevel=0,tscale=1)
 
 
     def test_clone(self):
@@ -83,7 +84,7 @@ class TestVebis(unittest.TestCase):
         testing.reverse()
 
         # compare expected signal and testing result
-        expected = vb.Signal([0,2,3,4,6],slevel=1,tscale=1)
+        expected = bt.Signal([0,2,3,4,6],slevel=1,tscale=1)
         self.assertEqual(expected,testing)
 
 
@@ -133,23 +134,23 @@ class TestVebis(unittest.TestCase):
         self.assertEqual(self.base,testing)
 
         testing = self.base & self.shift1
-        expected = vb.Signal([1,5,6],slevel=0,tscale=1)
+        expected = bt.Signal([1,5,6],slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
         testing = self.base & self.shift2
-        expected = vb.Signal([2,4,5,6],slevel=0,tscale=1)
+        expected = bt.Signal([2,4,5,6],slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
         testing = self.base & self.shift3
-        expected = vb.Signal([3,5,6],slevel=0,tscale=1)
+        expected = bt.Signal([3,5,6],slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
         testing = self.base & self.shift4
-        expected = vb.Signal([4,6],slevel=0,tscale=1)
+        expected = bt.Signal([4,6],slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
         testing = self.base & self.shift5
-        expected = vb.Signal([5,6],slevel=0,tscale=1)
+        expected = bt.Signal([5,6],slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
         testing = self.base & self.shift6
@@ -168,23 +169,23 @@ class TestVebis(unittest.TestCase):
         self.assertEqual(self.base,testing)
 
         testing = self.base | self.shift1
-        expected = vb.Signal([1,2,6],slevel=0,tscale=1)
+        expected = bt.Signal([1,2,6],slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
         testing = self.base | self.shift2
-        expected = vb.Signal([2,3,4,6],slevel=1,tscale=1)
+        expected = bt.Signal([2,3,4,6],slevel=1,tscale=1)
         self.assertEqual(expected,testing)
 
         testing = self.base | self.shift3
-        expected = vb.Signal([3,4,6],slevel=0,tscale=1)
+        expected = bt.Signal([3,4,6],slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
         testing = self.base | self.shift4
-        expected = vb.Signal([4,6],slevel=1,tscale=1)
+        expected = bt.Signal([4,6],slevel=1,tscale=1)
         self.assertEqual(expected,testing)
 
         testing = self.base | self.shift5
-        expected = vb.Signal([5,6],slevel=1,tscale=1)
+        expected = bt.Signal([5,6],slevel=1,tscale=1)
         self.assertEqual(expected,testing)
 
 
@@ -192,27 +193,27 @@ class TestVebis(unittest.TestCase):
         """ Test logical xor on test signal. """
 
         testing = self.base ^ self.base
-        expected = vb.Signal([0,6],slevel=0,tscale=1)
+        expected = bt.Signal([0,6],slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
         testing = self.base ^ self.shift1
-        expected = vb.Signal([1,2,5,6],slevel=0,tscale=1)
+        expected = bt.Signal([1,2,5,6],slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
         testing = self.base ^ self.shift2
-        expected = vb.Signal([2,3,5,6],slevel=1,tscale=1)
+        expected = bt.Signal([2,3,5,6],slevel=1,tscale=1)
         self.assertEqual(expected,testing)
 
         testing = self.base ^ self.shift3
-        expected = vb.Signal([3,4,5,6],slevel=0,tscale=1)
+        expected = bt.Signal([3,4,5,6],slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
         testing = self.base ^ self.shift4
-        expected = vb.Signal([4,6],slevel=1,tscale=1)
+        expected = bt.Signal([4,6],slevel=1,tscale=1)
         self.assertEqual(expected,testing)
 
         testing = self.base ^ self.shift5
-        expected = vb.Signal([5,6],slevel=1,tscale=1)
+        expected = bt.Signal([5,6],slevel=1,tscale=1)
         self.assertEqual(expected,testing)
 
         testing = self.base ^ self.shift6
@@ -236,9 +237,9 @@ class TestVebis(unittest.TestCase):
         for t in range(20):
 
             # create random signals
-            in_a = vb.Signal()
+            in_a = bt.Signal()
             in_a.noise(0,100,freq_mean=0.1,width_mean=3)
-            in_b = vb.Signal()
+            in_b = bt.Signal()
             in_b.noise(-10,90,freq_mean=0.3,width_mean=2)
 
             # direct xor
@@ -270,27 +271,30 @@ class TestVebis(unittest.TestCase):
         for t in range(1):
 
             # create random signals
-            in_a = vb.Signal()
-            in_a.noise(0,7)
-            in_b = vb.Signal()
-            in_b.noise(0,7)
+            in_a = bt.Signal()
+            in_a.noise(0,11,freq_mean=0.3,width_mean=3)
+            in_b = bt.Signal()
+            in_b.noise(0,11,freq_mean=0.3,width_mean=2)
+            print 'in_a',in_a
+            print 'in_b',in_b
 
-            # compute dumb correlation
-            expected = dumb_correlation(in_a,in_b,normalize=False)
+            # test correlation
+            expected = correlation_sampled(in_a,in_b,normalize=False)
             testing = in_a.correlation(in_b,normalize=False)
             print 'expected=',expected
             print 'testing=',testing
 
-#            self.assertEqual(expected,testing)
+            #self.assertTrue(correlation_compare(expected,testing))
+            print 'cmp=',correlation_compare(expected,testing)
 
             # compare original test signal and output signal
             pl.figure(1)
             pl.subplot(4,1,1)
-            pl.xlim(0,10)
+            pl.xlim(-2,12)
             pl.ylim(-0.1,1.1)
             in_a.plot() 
             pl.subplot(4,1,2)
-            pl.xlim(0,10)
+            pl.xlim(-2,12)
             pl.ylim(-0.1,1.1)
             in_b.plot() 
             pl.subplot(4,1,3)
@@ -304,7 +308,7 @@ class TestVebis(unittest.TestCase):
             pl.show()
 
 
-def dumb_correlation(self,other,normalize=False):
+def correlation_sampled(self,other,normalize=False):
         """ Returns the unormalized correlation function of two signals
         (*self* and *other*). """
 
@@ -336,6 +340,58 @@ def dumb_correlation(self,other,normalize=False):
             times += [t + shift + 1]
 
         return corr, times
+
+
+def correlation_compare(corr_sampled,corr_bts):
+    """ Compare two correlations: a sampled one with a bts one. """
+
+    # separate correlation values from timing
+    corr_sampled, times_sampled = corr_sampled
+    corr_bts, times_bts = corr_bts
+
+    # correlations must have the same start and end times
+    if times_sampled[0] != times_bts[0]:
+        print 'false 1'
+        return False
+    if times_sampled[-1] != times_bts[-1]:
+        print 'false 2'
+        return False
+
+    # compare main loop: at first compare inequality, return false.
+    j = 0
+    for i in range(len(corr_bts)):
+        # check for current items equality
+        if times_sampled[j] == times_bts[i]:
+            if corr_sampled[j] == corr_bts[i]:
+                j = j + 1
+                continue
+            else:
+                print 'false 3'
+                return False
+        # not equal: verify that corr sampled linearly interpolates bts corr
+        else:
+            j_start = j
+            # find next sampled time coincident with current bts time
+            while times_sampled[j] < times_bts[i]:
+                j = j + 1
+            # corr value step for each sample, inside current bts time step
+            bts_time_step = times_bts[i] - times_bts[i - 1]
+            sample_times_num = j - j_start
+            bts_corr_step = float(corr_bts[i]-corr_bts[i - 1]) \
+                    / (sample_times_num + 1)
+            print 'i,j,j_start,bts_time_step,bts_corr_step,sample_times_num',i,j,j_start,bts_time_step,bts_corr_step,sample_times_num
+            # verify that inside sampled corr values are on linear
+            # interpolation of bts corr from i-1 to i
+            expected = corr_bts[i - 1]
+            for k in range(j_start,j):
+                expected = expected + bts_corr_step
+                if expected != corr_sampled[k]:
+                    print 'k,expected,testing',k,expected,corr_sampled[k]
+                    print 'false 4'
+                    return False
+            j = j + 1
+
+    return True
 
 
 # main
