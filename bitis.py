@@ -413,84 +413,38 @@ class Signal:
         return integral
 
 
-    def correlation(self,other,normalize=False):
+    def correlation(self,other,normalize=False,step=1):
         """ Returns the unormalized correlation function of two signals
         (*self* and *other*). """
 
         # simplify variables access
         sig_a = self.clone()
-        sig_b = other.clone()
 
         # take the first edge of signal B as origin. Keep signal B fixed in
-        # time and slide signal A. To start, shift A end on the first change
-        # of B.
-        shift = sig_b.times[0] - sig_a.times[-1] + 1
-        print 'shift=',shift
+        # time and slide signal A. To start, shift A to put A end on B start.
+        shift = other.times[0] - self.times[-1]
         for i in range(len(sig_a.times)):
             sig_a.times[i] = sig_a.times[i] + shift
 
-        # save shifted sig_a times for later use
-        sig_a_saved = sig_a.clone()
-
-        # detect the values of the phasing variable corresponding to
-        # the vertex of the correlation function
-        phi = sig_a.times[:]
-        print 'phi=',phi
-        for i in range(len(sig_b.times)-1):
-            off_bb = sig_b.times[i + 1] - sig_b.times[i]
-            if i == 0 or i == len(sig_b.times)-2:
-                off_bb = off_bb - 1
-            print 'off_bb=',off_bb
-            for j in range(len(sig_a.times)):
-                sig_a.times[j] += off_bb
-            phi += sig_a.times[:]
-            print 'phi=',phi
-        phi.sort()
-        #del phi[-1]
-
-        # keep only unique phase values
-        k = 0
-        while k < len(phi) - 1:
-            if not phi[k] - phi[k + 1]:
-                del phi[k]
-            else:
-                k += 1
-        print 'phi=',phi
-
-        # set proper origin to phi values
-        adjust = shift - phi[0]
-        for k in range(len(phi)):
-            phi[k] = phi[k] + adjust
-        print 'phi=',phi
-
-        # reset signal B edges to the original time values
-        sig_a.times = sig_a_saved.times[:]
-
-        # compute correlation function at previuosly computed phase values
-
-        # correlation among signal A and B
+        # compute correlation step by step
         corr = []
-        last_ph = phi[0]
-        for ph in phi:
-            print 'ph=',ph
-            dph = ph - last_ph
-            last_ph = ph
-            # apply phase to signal A
+        times = []
+        for t in range(0,self.times[-1] - self.times[0]
+                + other.times[-1] - other.times[0] - 1,step):
+
+            # shift right A by step units
             for i in range(len(sig_a.times)):
-                sig_a.times[i] = sig_a.times[i] + dph
-            print 'sig_a.times=',sig_a.times
-            print 'sig_b.times=',sig_b.times
+                sig_a.times[i] = sig_a.times[i] + step
 
             # correlation among signal A and B
             if normalize:
                 corr += [(sig_a ^ other).integral(0,normalize) * 2 - 1]
             else:
                 corr += [(sig_a ^ other).integral(0,normalize=False)]
-            print 'xor=',sig_a ^ sig_b
-            print 'corr=',corr
 
-        return corr, phi
+            times += [t + shift + 1]
 
+        return corr, times
 
 
     def plot(self,*args,**kargs):

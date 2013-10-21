@@ -108,7 +108,6 @@ class TestBitis(unittest.TestCase):
 
         testing = self.base._intersect(self.shift5)
         self.assertEqual((5,6,4,3,1,1,0,0),testing)
-        # sospetto ? B non correttamente detettato
 
         testing = self.base._intersect(self.shift6)
         self.assertEqual(None,testing)
@@ -272,126 +271,28 @@ class TestBitis(unittest.TestCase):
 
             # create random signals
             in_a = bt.Signal()
-            in_a.noise(0,11,freq_mean=0.3,width_mean=3)
+            in_a.noise(0,6,freq_mean=0.3,width_mean=3)
             in_b = bt.Signal()
-            in_b.noise(0,11,freq_mean=0.3,width_mean=2)
-            print 'in_a',in_a
-            print 'in_b',in_b
+            in_b.noise(0,7,freq_mean=0.3,width_mean=2)
 
             # test correlation
-            expected = correlation_sampled(in_a,in_b,normalize=False)
-            testing = in_a.correlation(in_b,normalize=False)
-            print 'expected=',expected
-            print 'testing=',testing
-
-            #self.assertTrue(correlation_compare(expected,testing))
-            print 'cmp=',correlation_compare(expected,testing)
+            expected = in_a.correlation(in_b)
 
             # compare original test signal and output signal
             pl.figure(1)
-            pl.subplot(4,1,1)
+            pl.subplot(3,1,1)
             pl.xlim(-2,12)
             pl.ylim(-0.1,1.1)
             in_a.plot() 
-            pl.subplot(4,1,2)
+            pl.subplot(3,1,2)
             pl.xlim(-2,12)
             pl.ylim(-0.1,1.1)
             in_b.plot() 
-            pl.subplot(4,1,3)
+            pl.subplot(3,1,3)
             pl.grid()
             corr, times = expected
             pl.plot(times,corr)
-            pl.subplot(4,1,4)
-            pl.grid()
-            corr, times = testing
-            pl.plot(times,corr)
             pl.show()
-
-
-def correlation_sampled(self,other,normalize=False):
-        """ Returns the unormalized correlation function of two signals
-        (*self* and *other*). """
-
-        # simplify variables access
-        sig_a = self.clone()
-
-        # take the first edge of signal B as origin. Keep signal B fixed in
-        # time and slide signal A. To start, shift A to put A end on B start.
-        shift = other.times[0] - self.times[-1]
-        for i in range(len(sig_a.times)):
-            sig_a.times[i] = sig_a.times[i] + shift
-
-        # compute correlation
-        corr = []
-        times = []
-        for t in range(self.times[-1] - self.times[0]
-                + other.times[-1] - other.times[0] - 1):
-
-            # shift right A by 1 unit
-            for i in range(len(sig_a.times)):
-                sig_a.times[i] = sig_a.times[i] + 1
-
-            # correlation among signal A and B
-            if normalize:
-                corr += [(sig_a ^ other).integral(0,normalize) * 2 - 1]
-            else:
-                corr += [(sig_a ^ other).integral(0,normalize=False)]
-
-            times += [t + shift + 1]
-
-        return corr, times
-
-
-def correlation_compare(corr_sampled,corr_bts):
-    """ Compare two correlations: a sampled one with a bts one. """
-
-    # separate correlation values from timing
-    corr_sampled, times_sampled = corr_sampled
-    corr_bts, times_bts = corr_bts
-
-    # correlations must have the same start and end times
-    if times_sampled[0] != times_bts[0]:
-        print 'false 1'
-        return False
-    if times_sampled[-1] != times_bts[-1]:
-        print 'false 2'
-        return False
-
-    # compare main loop: at first compare inequality, return false.
-    j = 0
-    for i in range(len(corr_bts)):
-        # check for current items equality
-        if times_sampled[j] == times_bts[i]:
-            if corr_sampled[j] == corr_bts[i]:
-                j = j + 1
-                continue
-            else:
-                print 'false 3'
-                return False
-        # not equal: verify that corr sampled linearly interpolates bts corr
-        else:
-            j_start = j
-            # find next sampled time coincident with current bts time
-            while times_sampled[j] < times_bts[i]:
-                j = j + 1
-            # corr value step for each sample, inside current bts time step
-            bts_time_step = times_bts[i] - times_bts[i - 1]
-            sample_times_num = j - j_start
-            bts_corr_step = float(corr_bts[i]-corr_bts[i - 1]) \
-                    / (sample_times_num + 1)
-            print 'i,j,j_start,bts_time_step,bts_corr_step,sample_times_num',i,j,j_start,bts_time_step,bts_corr_step,sample_times_num
-            # verify that inside sampled corr values are on linear
-            # interpolation of bts corr from i-1 to i
-            expected = corr_bts[i - 1]
-            for k in range(j_start,j):
-                expected = expected + bts_corr_step
-                if expected != corr_sampled[k]:
-                    print 'k,expected,testing',k,expected,corr_sampled[k]
-                    print 'false 4'
-                    return False
-            j = j + 1
-
-    return True
 
 
 # main
