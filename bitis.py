@@ -24,9 +24,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# TODO
-# - extend vbs format to support odd number of pulses/edges
 # .-
+
+# define global variables
+
+__version__ = '0.1.0'
+__author__ = 'Fabrizio Pollastri <f.pollastri@inrim.it>'
 
 
 #### import required modules
@@ -39,22 +42,26 @@ import random           # random generation
 #### classes
 
 class Signal:
-    """ Implements the concept of "Vectorial Binary Signal", a memory
-    representation of a binary signal by a vector or list filled with the
-    time of signal changes (signal edges). This representation is useful
-    when the signal has a low rate of change with respect to the sampling
-    period. In this case, the representation is very compact in memory.
-    The first element of signal sequence has always change time = 0. The
-    sequence can be shifted in time by specifying a time offset. The signal
-    level before the first change is specified by a initial value. The
-    signal level after the last change is equal to initial value, if changes
-    are even, otherwise is inverted. """
+    """
+    Implements the concept of "Binary Timed Signal": a memory
+    representation of a binary signal as sequence of the times of
+    signal changes (signal edges).
+    The first and the last times sequence elements are exceptions:
+    the first is the signal start time, the last is the signal end time.
+    Outside this interval the signal is undefined.
+    *times* can be used to initialize the signal times sequence, it must
+    be a list of times. May be empty. May contain start and end times only.
+    The signal level before the first change is specified by *slevel*.
+    Also a time scale factor can be specified by *tscale*, at present
+    not used.
+    """
+
 
     # a test signal with a sequence of primes as changes timing
     TEST_TIMES = [-1,0,1,2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,62]
 
 
-    def __init__(self,times=None,slevel=0,tscale=1):
+    def __init__(self,times=[],slevel=0,tscale=1):
 
         # sequence of signal (start,changes,end) times
         if times:
@@ -86,25 +93,25 @@ class Signal:
 
 
     def clone(self):
-        """ Returns a copy with the same attributes/values of current the
-        instance. """
+        """ Return a copy with the same attributes/values of the current
+        sugnal object. """
 
         return copy.deepcopy(self)
 
 
     def shift(self,offset):
-        """ Get/Set the time offset (s) for all signal changes. If
-        *offset* is not specified, returns the time offset value (int)i
-        stored in the signal object. Otherwise, set it. """
+        """ Add *offset* to signal start and end times and to each signal
+        change time. """
 
         for i in range(len(self.times)):
                 self.times[i] += offset
 
 
     def reverse(self):
-        """ Reverse the signal edge sequence: last change becomes the first
-        and viceversa. Time intervals between all changes are preserved.
-        Returns the same input signal object with the updated times. """
+        """ Reverse the signal change times sequence: last change becomes
+        the first and viceversa. Time intervals between changes are
+        preserved.
+        Return the same input signal object with the updated times. """
 
         # set start level: if times number is odd, must be inverted.
         if len(self.times) & 1:
@@ -118,10 +125,10 @@ class Signal:
         self.times.sort()
 
 
-    def jitter(self,jitter_stddev=0):
-        """ Add a gaussian jitter to *signal* with the given standard deviation
-        *jitter_stddev* (s) and zero mean. The first and last signal edges are
-        unchanged. The jitter is added to the current signal istance. """
+    def jitter(self,stddev=0):
+        """ Add a gaussian jitter to the change times of *self* signal object
+        with the given standard deviation *stddev* and zero mean.
+        Signal start and end times are unchanged."""
 
         # convert to proper time scale
         jitter_stddev *= self.time_scale
@@ -147,9 +154,9 @@ class Signal:
         """ Fill current signal object with disturbing pulses. Pulses time
         domain extends from *start* to *end*. Pulses
         frequency and width follow a gaussian distribution: *freq_mean* and
-        *freq_stddev* are the given mean and standard deviation of frequency
-        in hertz, *width_mean* and *width_stddev* are the given mean and
-        standard deviation of the pulse width in seconds (1 level).
+        *freq_stddev* are the given mean and standard deviation of frequency,
+        *width_mean* and *width_stddev* are the given mean and
+        standard deviation of the pulse width at 1 level.
         Previous signal data is destroyed. """
 
         # level 0 mean and stdev from frequency and pulse width moments
@@ -185,7 +192,16 @@ class Signal:
 
 
     def __eq__(self,other):
-        """ Signal objetcs equality test. """
+        """ Equality test between two signals. Return *True* if the
+        two signals are equal. Otherwise, print the two signals and
+        return *False*. Can be used as the equality or inequality
+        operator as in the following example (signal a,b are instances
+        of the Signal class)::
+
+            if signal_a == signal_b:
+                print 'signal a and b are equal'
+            if signal_a != signal_b:
+                print 'signal a and b are different'"""
 
         if self.__dict__ == other.__dict__:
             return True
@@ -242,7 +258,7 @@ class Signal:
 
     def _bioper(self,other,operator):
         """ Compute the logic and of twoi given signal object: *self* and
-        *signal*. Returns a signal object with the and of the two input
+        *signal*. Return a signal object with the and of the two input
         signals. """
 
         # if one or both operand is none, return none as result.
@@ -315,25 +331,37 @@ class Signal:
 
 
     def __and__(self,other):
-        """ Compute the logic and of twoi given signal object: *self* and
-        *signal*. Returns a signal object with the and of the two input
-        signals. """
+        """ Compute the logic and of two given signal objects: *self* and
+        *other*. Return a signal object with the and of the two input
+        signals. Can be used as the bitwise and operator as in the following
+        example (signal a,b,c are instances of the Signal class)::
+
+            signal_c = signal_a & signal_b
+        """
 
         return self._bioper(other,lambda a,b: a and b)
 
 
     def __or__(self,other):
-        """ Compute the logic or of two given signal object: *self* and
-        *signal*. Returns a signal object with the or of the two input
-        signals. """
+        """ Compute the logic or of two given signal objects: *self* and
+        *other*. Return a signal object with the or of the two input
+        signals. Can be used as the bitwise or operator as in the following
+        example (signal a,b,c are instances of the Signal class)::
+            
+            signal_c = signal_a | signal-b
+        """
 
         return self._bioper(other,lambda a,b: a or b)
 
 
     def __xor__(self,other):
         """ Compute the logic xor of two given signal objects: *self* and
-        *signal*. Returns a signal object with the xor of the two input
-        signals. """
+        *signal*. Return a signal object with the xor of the two input
+        signals. Can be used as the bitwise xor operator as in the
+        following example (signal a,b,c are instances of the Signal class)::
+            
+            signal_c = signal_a ^ signal_b
+        """
 
         # if one or both operand is none, return none as result.
         if not self or not other:
@@ -376,9 +404,14 @@ class Signal:
 
 
     def __invert__(self):
-        """ Compute the logic not of given *self* signal object.
-        Returns a signal object that is a copy of the input signal with
-        start level inverted. """
+        """ Compute the logic not of the given signal object: *self*.
+        Return a signal object that is a copy of the input signal with
+        the start level inverted. Can be used as the bitwise not operator
+        as in the following example (signal a,b are instances of the
+        Signal class)::
+        
+            signal_b = ~ signal_a
+        """
 
         not_sig = self.clone()
         not_sig.slevel = not self.slevel
@@ -387,10 +420,12 @@ class Signal:
 
 
     def integral(self,level=1,normalize=False):
-        """ Returns the integral (int) of signal: the summation of all periods
-        in which the signal is at the level specified by *level* argument. The
-        summation is operated on the signal domain only: levels at 1 before the
-        first signal edge and after the last edge are ignored. """
+        """ Return the integral of a signal object: the elapsed time of all
+        periods in which the signal is at the level specified by *level*.
+        Output can be absolute (*normalize=False*) or can be normalized
+        (*normalize=True*): absolute integral averaged over the whole signal
+        domain. The summation is operated on the signal domain only.
+         """
 
         # do summation between first and last signal changes
         changes_int = 0
@@ -414,8 +449,14 @@ class Signal:
 
 
     def correlation(self,other,normalize=False,step=1):
-        """ Returns the unormalized correlation function of two signals
-        (*self* and *other*). """
+        """ Return the correlation function of two given signal objects:
+        *self* and *other*. Output can be absolute: integral of xor between
+        shifted *self* and *other* signals (*normalize=False*). Output
+        can be normalized (*normalize=True*) in the range -1 +1.
+        The correlation function time scale is set by *step*.
+        The correlation function is returned as two lists: the correlation
+        values and the correlation time shifts.
+        """
 
         # simplify variables access
         sig_a = self.clone()
@@ -428,7 +469,7 @@ class Signal:
 
         # compute correlation step by step
         corr = []
-        times = []
+        shifts = []
         for t in range(0,self.times[-1] - self.times[0]
                 + other.times[-1] - other.times[0] - 1,step):
 
@@ -442,13 +483,14 @@ class Signal:
             else:
                 corr += [(sig_a ^ other).integral(0,normalize=False)]
 
-            times += [t + shift + 1]
+            shifts += [t + shift + 1]
 
-        return corr, times
+        return corr, shifts
 
 
     def plot(self,*args,**kargs):
-        """ Plot signal as square wave. """
+        """ Plot signal *self* as square wave. Requires `Matplotlib`_.
+        *\*args* and *\**kargs* are passed on to matplotlib functions."""
 
         from matplotlib.pyplot import plot
 
