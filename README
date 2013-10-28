@@ -1,0 +1,128 @@
+==============================================
+BITIS, Binary Timed Signals Processing Library
+==============================================
+
+**BITIS** is a python module that implements a full set of operators over
+binary signals represented as BTS format. The `BTS format`_ is a computer
+memory representation of a binary signal that can have a very compact
+memory footprint when the signal has a low rate of change with respect
+to its sampling period.
+
+For example, let see a typical case, a time reference signal having about
+one pulse per second and one microsecond of time resolution. The BTS
+format allows to completely discard the one million samples per second
+between each two pulses and to keep in memory only the signal change times:
+for each second, the time of the pulse front edge and the time of the
+trailing edge.
+
+BITIS is released under the GNU General Public License.
+
+At present, version 0.1.0, BITIS is in beta status. Any debugging aid is
+welcome.
+
+For any question, suggestion, contribution contact the author Fabrizio Pollastri <f.pollastri_a_t_inrim.it>.
+
+
+Usage example
+=============
+
+This simple example shows some logic operations supported by the **BITIS**
+module.
+
+.. literalinclude:: ../examples/example1.py
+    :linenos:
+    :language: python
+    :lines: 30-50
+
+
+Module reference
+================
+
+The **BITIS** modules defines one class realizing a BTS signal with
+a set of methods implementing several unary or binary operators over the
+signal.
+
+.. automodule:: bitis
+.. autoclass:: Signal
+   :special-members:
+   :members:
+
+
+BTS format
+==========
+
+The scope of this memo is to describe the BTS, Binary Timed Signal. A format
+for compact storage of binary signals in computer memory.
+Binary signals are signal that can have only two levels/states, zero or one.
+
+The *BTS* format is composed by 3 elements.
+
+1. A sequence of the signal changes times.
+2. The start level value.
+3. A time scale value.
+
+**Change times sequence**
+
+This sequence stores all the times where the signal changes its level from
+0 to 1 or viceversa. The first and the last sequence items have a different
+meaning: they are respectively the start time and the end time of the signal.
+The signal start and end are the boundaries of the signal domain. Outside
+this interval, the signal is to be itended as not defined.
+The change times sequence may be empty: in this case the signal must
+be threated as empty or null. The sequence may have 2 items: in this case
+the signal has a constant level along all its domain and there are no level
+changes. The sequence may have 3 or more items: in this case the signal has
+1 or more level changes. A sequence with only one item is not allowed.
+The sequence must be sorted in ascending order.
+
+**Start level value**
+
+If the change times sequence has 3 or more items, the start level value
+specifies the signal level from the signal start time to the first change time.
+If the change times sequence has 2 items, the signal has a constant level
+that is equal to the intial level value.
+
+**Time scale**
+
+An arbitrary unit of time can be chosen to express the values of change times.
+The time scale value is the ratio: 1 second / arbitrary time unit.
+
+
+BTS python implementation
+=========================
+
+**BITIS** implements the *BTS* format with the *Signal* class. Each BTS
+signal is an instance of this class. The three elements of the BTS format
+are the three attributes (*times, slevel, tscale*) of the *Signal* class.
+The sequence *times* is realized by a list of integers.
+
+
+Requirements
+============
+
+To run the code, **Python 2.6 or later** or **Python 3.0 or later** must
+already be installed.  The latest release is recommended.  Python is
+available from http://www.python.org/.
+
+When the Signal plotting method is used also `Matplotlib`_ is required.
+
+
+Installation
+============
+
+1. Open a shell.
+
+2. Get root privileges and install the package. Command::
+
+    pip install bitis
+
+
+Changelog
+=========
+
+**BITIS 0.1.0 released 31-Oct-2013**
+
+    * First release.
+
+
+.. _Matplotlib: http://matplotlib.org
