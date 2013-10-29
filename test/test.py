@@ -280,18 +280,26 @@ class TestBitis(unittest.TestCase):
 
             # compare original test signal and output signal
             pl.figure(1)
+            pl.suptitle('BITIS: correlation of two signals.')
             pl.subplot(3,1,1)
             pl.xlim(-2,12)
             pl.ylim(-0.1,1.1)
+            pl.ylabel('signal a')
+            pl.xlabel('time')
             in_a.plot() 
             pl.subplot(3,1,2)
             pl.xlim(-2,12)
             pl.ylim(-0.1,1.1)
+            pl.ylabel('signal b')
+            pl.xlabel('time')
             in_b.plot() 
             pl.subplot(3,1,3)
             pl.grid()
             corr, times = expected
             pl.plot(times,corr)
+            pl.ylabel('correlation a b')
+            pl.xlabel('signal a shift')
+            pl.subplots_adjust(hspace=0.4)
             pl.show()
 
 

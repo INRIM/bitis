@@ -455,7 +455,9 @@ class Signal:
         can be normalized (*normalize=True*) in the range -1 +1.
         The correlation function time scale is set by *step*.
         The correlation function is returned as two lists: the correlation
-        values and the correlation time shifts.
+        values and the correlation time shifts. The origin of time shift
+        is set when the shifted start time of *self* is equal to the start
+        time of *other*.
         """
 
         # simplify variables access
