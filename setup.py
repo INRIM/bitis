@@ -56,7 +56,7 @@ setup (
   author_email = AUTHOR_EMAIL,
   maintainer = AUTHOR,
   maintainer_email = AUTHOR_EMAIL,
-  url = 'http://bitis.inrim.it',
+#  url = 'http://bitis.inrim.it',
 #  download_url = 'http://bitis.inrim.it/dist/bitis-' + VERSION + '.tar.gz',
   license = 'http://www.gnu.org/licenses/gpl.txt',
   platforms = ['Linux'],
