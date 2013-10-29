@@ -50,7 +50,8 @@ class Signal:
     the first is the signal start time, the last is the signal end time.
     Outside this interval the signal is undefined.
     *times* can be used to initialize the signal times sequence, it must
-    be a list of times. May be empty. May contain start and end times only.
+    be a list of times (integers). May be empty. May contain start and
+    end times only.
     The signal level before the first change is specified by *slevel*.
     Also a time scale factor can be specified by *tscale*, at present
     not used.
@@ -94,7 +95,7 @@ class Signal:
 
     def clone(self):
         """ Return a copy with the same attributes/values of the current
-        sugnal object. """
+        signal object. """
 
         return copy.deepcopy(self)
 
