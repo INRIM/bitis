@@ -60,7 +60,7 @@ setup (
 #  download_url = 'http://bitis.inrim.it/dist/bitis-' + VERSION + '.tar.gz',
   license = 'http://www.gnu.org/licenses/gpl.txt',
   platforms = ['Linux'],
-  description =  "see html/index.html or http://bitis.inrim.it/",
+  description =  "BITIS is a processing library for binary timed signals",
   long_description = """
   BITIS is a python module that implements a full set of operators over
   binary signals represented as BTS format. The BTS format is a computer

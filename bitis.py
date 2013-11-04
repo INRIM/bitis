@@ -28,7 +28,7 @@
 
 # define global variables
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 __author__ = 'Fabrizio Pollastri <f.pollastri@inrim.it>'
 
 
@@ -512,5 +512,69 @@ class Signal:
             plot(self.times,levels,*args,**kargs)
         else:
             plot(self.times,levels,**kargs)
+
+
+#### functions
+
+def bin2pwm(bincode,period,elapse_0,elapse_1,level=1,origin=0):
+    """ Convert a binary code into a pulse width modulation signal in
+    BTS format. Return a Signal class object. *bincode* is a tuple or a
+    list of tuples: (*bit_length*,*bits*). *bit_length* is an integer
+    with the number of bits. *bits* is an integer or a long integer with
+    the binary code.  First bit is the LSB, last bit is the MSB.
+    *period* is the period of pwm pulses. *elapse_0* is the elapse time
+    of a pulse coding a 0 bit. *elapse_1*, the same for a 1 bit. *level*
+    is the active pulse level. *origin* is the time of the signal start. """
+
+    # to list single tuple
+    if type(bincode) != list:
+        bincode = [bincode]
+
+    # allocate pwm signal
+    pwm = Signal(slevel=level)
+
+    # convert a tuple at a time
+    for bit_num, code in bincode:
+        # convert bit by bit of current tuple
+        end = bit_num * period + origin
+        for t0 in range(origin,end,period):
+            if code & 1:
+                t1 = t0 + elapse_1
+            else:
+                t1 = t0 + elapse_0
+            code >>= 1
+            pwm.times.append(t0)
+            pwm.times.append(t1)
+
+        # next tuple start at current tuple end time
+        origin = end
+
+    # end signal at the end of last period
+    #pwm.times.append(end)
+
+    return pwm
+
+
+def pwm2bin(pwm,threshold,below=0,level=1):
+    """ Convert a pulse width modulation signal in BTS format to binary code.
+    Return a tuple: see *bincode* in **bin2pwm**. *pwm* is the signal to
+    decode. *threshold* is the boundary of elapsed time of pulse active level,
+    between a 0 bit and a 1 bit. *below* = 0 means that below threshold there
+    is a 0 bit. *below* = 1 is viceversa. *level* says what is the signal
+    active level. Conversion is done by testing only the active pulse level
+    elapse. No check is done on pulse period. """
+
+    code = 0
+
+    for i in range(len(pwm.times)-2,-1,-2):
+        code <<= 1
+        if pwm.times[i + 1] - pwm.times[i] > threshold:
+            if not below:
+                code |= 1
+        else:
+            if below:
+                code |= 1
+
+    return (len(pwm.times) / 2,code)
 
 #### END

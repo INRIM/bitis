@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # .+
 # .context    : Binary Timed Signal Processing Library
-# .title      : Example 1
+# .title      : direct xor vs computed xor
 # .kind	      : python source
 # .author     : Fabrizio Pollastri
 # .site	      : Torino - Italy

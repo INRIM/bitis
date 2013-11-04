@@ -29,6 +29,7 @@
 
 import bitis as bt
 import random
+from sys import maxint
 import unittest
 
 import matplotlib.pyplot as pl
@@ -303,7 +304,43 @@ class TestBitis(unittest.TestCase):
             pl.show()
 
 
-# main
+    def test_pwm_codec(self):
+        """ Make a number of conversion from a random code to the
+        corresponding pwm signal and back again to code. Test
+        equality of input and output codes. """
+
+        # make random sequence repeteable
+        random.seed(1)
+
+        # test 100 random binary codes sequences
+        for s in range(100):
+
+            # build random input data
+            bit_length = random.randint(0,32)
+            code = random.randint(-maxint-1,maxint)
+            code_in = (bit_length,code)
+            period = random.randint(10,20)
+            elapse_0 = random.randint(1,2)
+            elapse_1 = random.randint(1,2) + elapse_0
+            level = random.randint(0,1)
+            origin = random.randint(-maxint-1,maxint)
+            threshold = (elapse_0 + elapse_1) / 2.
+
+            # from codes to pulses and back again
+            pwm = bt.bin2pwm(code_in,period,elapse_0,elapse_1,level,origin)
+            code_out = bt.pwm2bin(pwm,threshold,level=level)
+
+            # clear unused code bits into code_in
+            mask = 0
+            for i in range(code_in[0]):
+                mask <<= 1
+                mask |= 1
+            code_in = (code_in[0],code_in[1] & mask)
+
+            # compare in and out codes
+            self.assertEqual(code_in,code_out)
+
+
 if __name__ == '__main__':
     unittest.main()
 
