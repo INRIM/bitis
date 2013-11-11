@@ -17,7 +17,7 @@ trailing edge.
 
 BITIS is released under the GNU General Public License.
 
-At present, version 0.2.0, BITIS is in alpha status. Any debugging aid is
+At present, version 0.3.0, BITIS is in alpha status. Any debugging aid is
 welcome.
 
 For any question, suggestion, contribution contact the author Fabrizio Pollastri <f.pollastri_a_t_inrim.it>.
@@ -29,7 +29,7 @@ Usage examples
 This simple example shows some logic operations supported by the **BITIS**
 module.
 
-.. literalinclude:: ../examples/xorlogic.py
+.. literalinclude:: ../examples/xor_logic.py
     :linenos:
     :language: python
     :lines: 30-50
@@ -46,6 +46,19 @@ This is the plotting result.
 
 .. image:: correlation.png
 
+The following example shows the signal of an asynchronous serial interface
+coding the ASCII character "U" with 8 character bits, odd parity, 2 stop bits
+and 50 baud tranmitting speed.
+
+.. literalinclude:: ../examples/serial_tx.py
+    :linenos:
+    :language: python
+    :lines: 30-77
+
+This is the plotting result. The x axis units are milliseconds.
+
+.. image:: serial_tx.png
+
 
 Module reference
 ================
@@ -56,7 +69,7 @@ signal. There are also some functions for data interface.
 
 
 Objects and methods
-------------------
+-------------------
 
 .. currentmodule:: bitis
 .. autoclass:: Signal
@@ -70,6 +83,8 @@ Functions
 .. currentmodule:: bitis
 .. autofunction:: bin2pwm
 .. autofunction:: pwm2bin
+.. autofunction:: serial_tx
+.. autofunction:: serial_rx
 
 
 BTS format
@@ -143,6 +158,16 @@ Installation
 
 Changelog
 =========
+
+**BITIS 0.3.0 released 11-Nov-2013**
+
+    * Add async serial transmitter (bits.serial_tx method) from chars to BTS
+      serial line signal.
+    * Add async serial receiver (bitis.serial_rx method) from BTS serial line
+      to chars.
+    * Add async serial transmitter example: serial_tx.py.
+    * Add unittest for async serial tx and rx.
+    * Modified plot method: only 0,1 ticks on y axis.
 
 **BITIS 0.2.0 released 4-Nov-2013**
 

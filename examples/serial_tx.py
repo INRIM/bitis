@@ -43,8 +43,6 @@ pl.figure(1,figsize=(6,3))
 pl.suptitle('BITIS: "U" character serial line coding.')
 pl.xlabel('time')
 pl.ylim(-0.1,1.1)
-print bt.serial_tx(chars,timings,char_bits=CHAR_BITS,parity=PARITY,
-        stop_bits=STOP_BITS,baud=BAUD)
 bt.serial_tx(chars,timings,char_bits=CHAR_BITS,parity=PARITY,
         stop_bits=STOP_BITS,baud=BAUD).plot()
 bit_time = TSCALE / BAUD
