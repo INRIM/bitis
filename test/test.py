@@ -341,6 +341,47 @@ class TestBitis(unittest.TestCase):
             self.assertEqual(code_in,code_out)
 
 
+    def test_serial_tx_rx(self):
+        """ Simulate encode and decode of a list of chars over a serial line.
+        Test the equality of the original char list with the received one. """
+
+        # constants
+        parity_keys = ['off','odd','even']
+
+        # make random sequence repeteable
+        random.seed(1)
+
+        # make whole test 10 time
+        for j in range(10):
+
+            # make random serial parameters
+            char_bits = random.randint(7,8)
+            parity = parity_keys[random.randint(0,2)]
+            stop_bits = random.randint(1,2)
+
+            # make random chars and timings
+            chars_in = []
+            timings_in = []
+            start = 0
+            for i in range(10):
+                chars_in.append(chr(random.randint(0,2**char_bits-1)))
+                start += abs(int(random.gauss(0,500))) + 240
+                timings_in.append(start)
+
+            # transmit and receive
+            sline = bt.serial_tx(chars_in,timings_in,char_bits=char_bits,
+                    parity=parity,stop_bits=stop_bits)
+            chars_out, timings_out, status = bt.serial_rx(sline,
+                    char_bits=char_bits,parity=parity,stop_bits=stop_bits)
+
+            # compare in and out chars, theirs timings and test for ok status
+            self.assertEqual(zip(chars_in,timings_in),
+                   zip(chars_out,timings_out))
+            self.assertTrue(all([s == 0 for s in status]))
+
+
+# main
+
 if __name__ == '__main__':
     unittest.main()
 

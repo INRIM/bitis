@@ -37,6 +37,7 @@ __author__ = 'Fabrizio Pollastri <f.pollastri@inrim.it>'
 import copy             # object copy support
 import math             # mathematical support
 import random           # random generation
+import sys              # sys constants
 
 
 #### classes
@@ -495,17 +496,19 @@ class Signal:
         """ Plot signal *self* as square wave. Requires `Matplotlib`_.
         *\*args* and *\**kargs* are passed on to matplotlib functions."""
 
-        from matplotlib.pyplot import plot
+        from matplotlib.pyplot import plot, yticks
 
         # generate signal levels
         levels = [self.slevel]
-        for i in range(1,len(self.times)):
+        for i in range(1,len(self.times) - 1):
             levels += [not levels[-1]]
+        levels += [levels[-1]]
 
         # set proper draw style for square waves
         if not kargs:
             kargs = {}
         kargs.update({'drawstyle':'steps-post'})
+        yticks([0,1])
 
         # if there are given args, pass them
         if args:
@@ -576,5 +579,197 @@ def pwm2bin(pwm,threshold,below=0,level=1):
                 code |= 1
 
     return (len(pwm.times) / 2,code)
+
+
+def serial_tx(chars,times,char_bits=8,parity='off',stop_bits=2,baud=50,
+        tscale=1000):
+    """ Emulate a serial asynchronous transmitting interface. Return
+    a BTS signal with the serial line pulses coding a given list of
+    characters, according to the following serial parameters. The list of
+    *chars* is the input to the serial transmitter. *times* is the list
+    of the start bit rising edge time of each char in *chars*. If times
+    are too fast with respect to the current baud rate, a char fifo behavoiur
+    is activated. *char_bits* is the character size in bits (5,6,7,8).
+    *parity* is the parity bit even, odd or off (parity absent).
+    *stop_bits* is the number of stop bits (1,2). *baud* is the serial
+    line speed, any positive value is allowed. The serial line is assumed
+    active high. """
+
+    # init serial line signal 
+    sline = Signal([times[0]-10],slevel=0,tscale=tscale)
+
+    # bit period
+    bit_time = tscale / baud
+
+    # serial char start time
+    prev_start = 0
+
+    # serialize all chars
+    for char, start in zip(chars,times):
+
+        # if char is too fast, delay it as a fifo.
+        if prev_start > start:
+            start = prev_start
+
+        # make serial code start at given timing
+        sline.times.append(start)
+            
+        # serialize char bits: LSB first.
+        line = 1
+        schar = ord(char)
+        for c in range(1,char_bits + 1):
+            if not line ^ schar & 1:
+                sline.times.append(start + c * bit_time)
+                line = not line
+            schar >>= 1
+            
+        # if required add parity
+        if parity != 'off':
+
+            # strip character don't care bits
+            mask = 0x1f
+            for i in range(char_bits-5):
+                mask <<= 1
+                mask |= 1
+            char = ord(char) & mask
+
+            # compute parit bit
+            ones = __parity(char)
+
+            # set it into serial signal
+            if parity == 'odd':
+                ones = ones ^ 1
+            c = c + 1
+            if not line ^ ones:
+                sline.times.append(start + c * bit_time)
+                line = not line
+
+        # stop bits: if not yet 0, set pulse level to 0.
+        c = c + 1
+        if line:
+            sline.times.append(start + c * bit_time)
+
+        # next start
+        start = start + (c + stop_bits) * bit_time
+
+    # finish appending last end    
+    sline.times.append(start)
+
+    return sline
+
+
+def serial_rx(sline,char_bits=8,parity='off',stop_bits=2,baud=50):
+    """ Emulate a serial asynchronous receiving interface. Return
+    a list of the received characters, a list of their start times and
+    a list of their status: 0 = ok, 1 = parity error. *sline*
+    is a BTS signal with the serial line pulses coding the characters to be
+    received. For the keyword arguments see **serial_tx**. The serial line
+    pulses are sampled at the given baud rate like a real asynchronous
+    serial interface. """
+
+    # constant
+    char_mask = [0,0,0,0,0,0x10,0x20,0x40,0x80]
+
+    # returned lists
+    chars = []
+    timings = []
+    status = []
+
+    # init vars
+    bit_time = sline.tscale / baud
+    i = 1 
+    imax = len(sline.times) - 1
+    start = -sys.maxint - 1
+    char = 0
+
+    # consume all serial line pulses
+    while True:
+
+        # search the first signal edge after start, stop at the last edge.
+        while start > sline.times[i]:
+            i += 1
+            # if start goes beyond the last edge, terminate.
+            if i > imax:
+                return chars, timings, status
+
+        # if start falls into zero level, move start to next rising edge.
+        if i & 1 ^ sline.slevel:
+            start = sline.times[i]
+
+        # center sampling time to the middle of bit period
+        sample_time = start + bit_time / 2
+            
+        # sample start bit, search first signal edge after sampling,
+        # stop at the last edge.
+        while sample_time > sline.times[i]:
+            i += 1
+            # if start bit sampling  goes beyond the last edge, terminate.
+            if i > imax:
+                return chars, timings, status
+
+        # detect line level at sampling time. If it is 0,
+        # character start is aborted, go to the begining.
+        if i & 1 ^ sline.slevel:
+            start = sample_time
+            continue
+
+        # sample a char, char bits wide: LSB first.
+        for c in range(char_bits,0,-1):
+            sample_time += bit_time
+            while sample_time > sline.times[i]:
+                i += 1
+                # if character sampling goes beyond the last edge, set
+                # remaining char bit to zero and terminate.
+                if i > imax:
+                    for j in range(c):
+                        char >>= 1
+                        char |= char_mask[char_bits]
+                    chars.append(chr(char))
+                    timings.append(start)
+                    status.append(3)
+                    return chars, timings, status
+            char >>= 1
+            if i & 1 ^ sline.slevel:
+                char |= char_mask[char_bits]
+        chars.append(chr(char))
+        timings.append(start)
+
+        # if required, check parity
+        if parity != 'off':
+
+            # compute parit bit
+            ones = __parity(char)
+            if parity == 'odd':
+                ones = ones ^ 1
+
+            # sample parity bit, stop at the last edge.
+            sample_time += bit_time
+            while sample_time > sline.times[i]:
+                i += 1
+                # if parity bit sampling  goes beyond the last edge, terminate.
+                if i > imax:
+                    status.append(4)
+                    return chars, timings, status
+            parity_bit = i & 1 ^ sline.slevel
+
+            # check
+            if parity_bit == ones:
+                status.append(0)
+            else:
+                status.append(1)
+
+        # consider stop bits: move start of next char at stop bits end.
+        start = sample_time + (stop_bits + 0.5) * bit_time
+
+    return chars, timings, status
+
+
+def __parity(value):
+    """ Return 0 for even parity, 1 for odd parity in value"""
+    ones = 0
+    while value:
+        value &= value - 1
+        ones += 1
+    return ones & 1
 
 #### END

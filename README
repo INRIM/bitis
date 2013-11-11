@@ -55,7 +55,7 @@ a set of methods implementing several unary or binary operators over the
 signal. There are also some functions for data interface.
 
 
-Objects ad methods
+Objects and methods
 ------------------
 
 .. currentmodule:: bitis
