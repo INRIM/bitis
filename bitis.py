@@ -22,22 +22,23 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# along with this software. If not, see <http://www.gnu.org/licenses/>.
 #
 # .-
 
-# define global variables
 
-__version__ = '0.3.0'
-__author__ = 'Fabrizio Pollastri <f.pollastri@inrim.it>'
-
-
-#### import required modules
+### import required modules
 
 import copy             # object copy support
 import math             # mathematical support
 import random           # random generation
 import sys              # sys constants
+
+
+# define global variables
+
+__version__ = '0.3.0'
+__author__ = 'Fabrizio Pollastri <f.pollastri@inrim.it>'
 
 
 #### classes
@@ -51,8 +52,8 @@ class Signal:
     the first is the signal start time, the last is the signal end time.
     Outside this interval the signal is undefined.
     *times* can be used to initialize the signal times sequence, it must
-    be a list of times (integers). May be empty. May contain start and
-    end times only.
+    be a list of times (integers or floats). May be empty. May contain
+    start and end times only.
     The signal level before the first change is specified by *slevel*.
     Also a time scale factor can be specified by *tscale*, at present
     not used.
@@ -113,7 +114,7 @@ class Signal:
         """ Reverse the signal change times sequence: last change becomes
         the first and viceversa. Time intervals between changes are
         preserved.
-        Return the same input signal object with the updated times. """
+        Return the same input signal object with the reversed times. """
 
         # set start level: if times number is odd, must be inverted.
         if len(self.times) & 1:
@@ -131,9 +132,6 @@ class Signal:
         """ Add a gaussian jitter to the change times of *self* signal object
         with the given standard deviation *stddev* and zero mean.
         Signal start and end times are unchanged."""
-
-        # convert to proper time scale
-        jitter_stddev *= self.time_scale
 
         # simplify access
         edges = self.edges
@@ -522,12 +520,13 @@ class Signal:
 def bin2pwm(bincode,period,elapse_0,elapse_1,level=1,origin=0):
     """ Convert a binary code into a pulse width modulation signal in
     BTS format. Return a Signal class object. *bincode* is a tuple or a
-    list of tuples: (*bit_length*,*bits*). *bit_length* is an integer
+    list of tuples: (*bit_length*, *bits*). *bit_length* is an integer
     with the number of bits. *bits* is an integer or a long integer with
     the binary code.  First bit is the LSB, last bit is the MSB.
     *period* is the period of pwm pulses. *elapse_0* is the elapse time
     of a pulse coding a 0 bit. *elapse_1*, the same for a 1 bit. *level*
-    is the active pulse level. *origin* is the time of the signal start. """
+    is the active pulse level. *origin* is the time of the leading edge
+    of the first signal pulse. """
 
     # to list single tuple
     if type(bincode) != list:
@@ -536,11 +535,15 @@ def bin2pwm(bincode,period,elapse_0,elapse_1,level=1,origin=0):
     # allocate pwm signal
     pwm = Signal(slevel=level)
 
+    # ser conventional start
+    pwm.times = [origin - 1]
+
     # convert a tuple at a time
     for bit_num, code in bincode:
         # convert bit by bit of current tuple
         end = bit_num * period + origin
-        for t0 in range(origin,end,period):
+        t0 = origin
+        for i in range(bit_num):
             if code & 1:
                 t1 = t0 + elapse_1
             else:
@@ -548,12 +551,13 @@ def bin2pwm(bincode,period,elapse_0,elapse_1,level=1,origin=0):
             code >>= 1
             pwm.times.append(t0)
             pwm.times.append(t1)
+            t0 = t0 + period 
 
         # next tuple start at current tuple end time
         origin = end
 
     # end signal at the end of last period
-    #pwm.times.append(end)
+    pwm.times.append(end + 1)
 
     return pwm
 
@@ -569,7 +573,7 @@ def pwm2bin(pwm,threshold,below=0,level=1):
 
     code = 0
 
-    for i in range(len(pwm.times)-2,-1,-2):
+    for i in range(len(pwm.times)-3,-1,-2):
         code <<= 1
         if pwm.times[i + 1] - pwm.times[i] > threshold:
             if not below:
@@ -578,12 +582,12 @@ def pwm2bin(pwm,threshold,below=0,level=1):
             if below:
                 code |= 1
 
-    return (len(pwm.times) / 2,code)
+    return ((len(pwm.times) - 1) / 2,code)
 
 
 def serial_tx(chars,times,char_bits=8,parity='off',stop_bits=2,baud=50,
         tscale=1000):
-    """ Emulate a serial asynchronous transmitting interface. Return
+    """ Simulate a serial asynchronous transmitting interface. Return
     a BTS signal with the serial line pulses coding a given list of
     characters, according to the following serial parameters. The list of
     *chars* is the input to the serial transmitter. *times* is the list
@@ -659,7 +663,7 @@ def serial_tx(chars,times,char_bits=8,parity='off',stop_bits=2,baud=50,
 
 
 def serial_rx(sline,char_bits=8,parity='off',stop_bits=2,baud=50):
-    """ Emulate a serial asynchronous receiving interface. Return
+    """ Simulate a serial asynchronous receiving interface. Return
     a list of the received characters, a list of their start times and
     a list of their status: 0 = ok, 1 = parity error. *sline*
     is a BTS signal with the serial line pulses coding the characters to be

@@ -96,11 +96,11 @@ Binary signals are signal that can have only two levels/states, zero or one.
 
 The *BTS* format is composed by 3 elements.
 
-1. The sequence of the signal changes times.
+1. The change times.
 2. The start level.
 3. The time scale.
 
-**Change times sequence**
+**Change times**
 
 This sequence stores all the times where the signal changes its level from
 0 to 1 or viceversa. The first and the last sequence items have a different
@@ -133,7 +133,7 @@ BTS python implementation
 **BITIS** implements the *BTS* format with the *Signal* class. Each BTS
 signal is an instance of this class. The three elements of the BTS format
 are the three attributes (*times, slevel, tscale*) of the *Signal* class.
-The sequence *times* is realized as list of integers.
+The sequence *times* is realized as list of integers or floats.
 
 
 Requirements

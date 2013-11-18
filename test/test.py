@@ -22,7 +22,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# along with this software. If not, see <http://www.gnu.org/licenses/>.
 #
 # .-
 
@@ -228,7 +228,8 @@ class TestBitis(unittest.TestCase):
     def test_logic(self):
         """ Test signal logic functions by computing the xor of two
         signals in two ways. The first, directly by xor method. The
-        second using the equation a xor b = a and not b or not a and b. """
+        second using the equation a xor b = a and not b or not a and b.
+        Signal times are floats. """
 
         # make repeatable random sequences
         random.seed(1)
@@ -238,9 +239,9 @@ class TestBitis(unittest.TestCase):
 
             # create random signals
             in_a = bt.Signal()
-            in_a.noise(0,100,freq_mean=0.1,width_mean=3)
+            in_a.noise(0.0,100.0,freq_mean=0.1,width_mean=3)
             in_b = bt.Signal()
-            in_b.noise(-10,90,freq_mean=0.3,width_mean=2)
+            in_b.noise(-10.0,90.0,freq_mean=0.3,width_mean=2)
 
             # direct xor
             xor1 = in_a ^ in_b
@@ -323,12 +324,8 @@ class TestBitis(unittest.TestCase):
             elapse_0 = random.randint(1,2)
             elapse_1 = random.randint(1,2) + elapse_0
             level = random.randint(0,1)
-            origin = random.randint(-maxint-1,maxint)
+            origin = random.uniform(-100.,100.)
             threshold = (elapse_0 + elapse_1) / 2.
-
-            # from codes to pulses and back again
-            pwm = bt.bin2pwm(code_in,period,elapse_0,elapse_1,level,origin)
-            code_out = bt.pwm2bin(pwm,threshold,level=level)
 
             # clear unused code bits into code_in
             mask = 0
@@ -336,6 +333,10 @@ class TestBitis(unittest.TestCase):
                 mask <<= 1
                 mask |= 1
             code_in = (code_in[0],code_in[1] & mask)
+
+            # from codes to pulses and back again
+            pwm = bt.bin2pwm(code_in,period,elapse_0,elapse_1,level,origin)
+            code_out = bt.pwm2bin(pwm,threshold,level=level)
 
             # compare in and out codes
             self.assertEqual(code_in,code_out)
