@@ -517,7 +517,7 @@ class Signal:
 
 #### functions
 
-def bin2pwm(bincode,period,elapse_0,elapse_1,level=1,origin=0):
+def bin2pwm(bincode,period,elapse_0,elapse_1,level=1,origin=0,tscale=1.):
     """ Convert a binary code into a pulse width modulation signal in
     BTS format. Return a Signal class object. *bincode* is a tuple or a
     list of tuples: (*bit_length*, *bits*). *bit_length* is an integer
@@ -533,9 +533,9 @@ def bin2pwm(bincode,period,elapse_0,elapse_1,level=1,origin=0):
         bincode = [bincode]
 
     # allocate pwm signal
-    pwm = Signal(slevel=level)
+    pwm = Signal(slevel=~level&1,tscale=tscale)
 
-    # ser conventional start
+    # set conventional start
     pwm.times = [origin - 1]
 
     # convert a tuple at a time
@@ -586,7 +586,7 @@ def pwm2bin(pwm,threshold,below=0,level=1):
 
 
 def serial_tx(chars,times,char_bits=8,parity='off',stop_bits=2,baud=50,
-        tscale=1000):
+        tscale=1.):
     """ Simulate a serial asynchronous transmitting interface. Return
     a BTS signal with the serial line pulses coding a given list of
     characters, according to the following serial parameters. The list of
@@ -683,7 +683,7 @@ def serial_rx(sline,char_bits=8,parity='off',stop_bits=2,baud=50):
     bit_time = sline.tscale / baud
     i = 1 
     imax = len(sline.times) - 1
-    start = -sys.maxint - 1
+    start = sline.times[0]
     char = 0
 
     # consume all serial line pulses
@@ -701,7 +701,7 @@ def serial_rx(sline,char_bits=8,parity='off',stop_bits=2,baud=50):
             start = sline.times[i]
 
         # center sampling time to the middle of bit period
-        sample_time = start + bit_time / 2
+        sample_time = start + bit_time / 2.
             
         # sample start bit, search first signal edge after sampling,
         # stop at the last edge.
