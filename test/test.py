@@ -89,6 +89,33 @@ class TestBitis(unittest.TestCase):
         self.assertEqual(expected,testing)
 
 
+    def test_join_split(self):
+        """ Make a number of split/join over a random signal.  Test
+        equality of original and splitted/joined signal. """
+
+        # make random sequence repeteable
+        random.seed(1)
+
+        # test 100 random binary codes sequences
+        for s in range(100):
+
+            # build random input data
+            start = random.uniform(-100.,100.)
+            end = random.uniform(start,start + 100.)
+            split = random.uniform(start+0.001,end-0.001)
+            freq_mean = (end - start) / 100.
+            width_mean = 0.2 / freq_mean
+            original = bt.Signal()
+            original.noise(start,end,freq_mean=0.1,width_mean=3)
+
+            # split and join 
+            signal_a, signal_b = original.split(split)
+            signal_out = signal_a.join(signal_b)
+
+            # compare original and out signals
+            self.assertEqual(original,signal_out)
+
+
     def test__intersect(self):
         """ Test intersection parameters. """
 
@@ -323,9 +350,8 @@ class TestBitis(unittest.TestCase):
             period = random.randint(10,20)
             elapse_0 = random.randint(1,2)
             elapse_1 = random.randint(1,2) + elapse_0
-            level = random.randint(0,1)
+            active = random.randint(0,1)
             origin = random.uniform(-100.,100.)
-            threshold = (elapse_0 + elapse_1) / 2.
 
             # clear unused code bits into code_in
             mask = 0
@@ -335,8 +361,8 @@ class TestBitis(unittest.TestCase):
             code_in = (code_in[0],code_in[1] & mask)
 
             # from codes to pulses and back again
-            pwm = bt.bin2pwm(code_in,period,elapse_0,elapse_1,level,origin)
-            code_out = bt.pwm2bin(pwm,threshold,level=level)
+            pwm = bt.bin2pwm(code_in,period,elapse_0,elapse_1,active,origin)
+            code_out = bt.pwm2bin(pwm,elapse_0,elapse_1)
 
             # compare in and out codes
             self.assertEqual(code_in,code_out)

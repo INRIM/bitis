@@ -37,7 +37,7 @@ import sys              # sys constants
 
 # define global variables
 
-__version__ = '0.3.0'
+__version__ = '0.4.0'
 __author__ = 'Fabrizio Pollastri <f.pollastri@inrim.it>'
 
 
@@ -89,14 +89,14 @@ class Signal:
 
 
     def test(self):
-        """ Fill current signal object with a test signal. Previous signal
+        """ Fill signal object with a test signal. Previous signal
         times are destroyed. Start level and time scale are preserved. """
 
         self.times = self.TEST_TIMES
 
 
     def clone(self):
-        """ Return a copy with the same attributes/values of the current
+        """ Return a copy with the same attributes/values of the 
         signal object. """
 
         return copy.deepcopy(self)
@@ -128,25 +128,77 @@ class Signal:
         self.times.sort()
 
 
+    def split(self,split):
+        """ Split the signal into two signals. *split* is the split time.
+        Return two signal objects. The first is the part of the original
+        signal before the split time, it ends at the split time. The second is
+        the part after the split time, it starts at the split time.
+        If *split* is not inside the original signal domain, no split
+        occours, None is returned. """
+
+        # if split outside signal domain, return None.
+        if split <= self.times[0] or self.times[-1] <= split:
+            return None
+
+        # search split point
+        for i in range(len(self.times)):
+            if split < self.times[i]:
+                break
+
+        # signal A 
+        signal_a = Signal(self.times[0:i],slevel=self.slevel,
+                tscale=self.tscale)
+        if split != signal_a.times[-1]:
+            signal_a.times.append(split)
+
+        # signal B
+        signal_b = Signal(self.times[i:],slevel=(i-1) & 1 ^ self.slevel,
+                tscale=self.tscale)
+        if split != signal_b.times[0]:
+            signal_b.times.insert(0,split)
+
+        return signal_a, signal_b
+
+
+    def join(self,other):
+        """ Join two signals (*self* and *other*) in one signal. If 
+        there is a time gap between the joining signals, fill it.
+        Return a signal object with the join result. Signals
+        with overlapping domains cannot be joined (join returns None).
+        Signals with different levels at one end and other start cannot be
+        joined (join returns None). """
+
+        # if joining signals overlap, return None.
+        if self.times[0] < other.times[0] and other.times[0] < self.times[-1]:
+            return None
+        if self.times[0] > other.times[-1] and other.times[-1] < self.times[-1]:
+            return None
+
+        # join
+        if self.times[0] < other.times[0]:
+            if len(self.times) & 1 ^ self.slevel != other.slevel:
+                return None
+            signal = Signal(self.times[:-1]+other.times[1:],slevel=self.slevel)
+        else:
+            if len(other.times) & 1 ^ other.slevel != self.slevel:
+                return None
+            signal = Signal(other.times[:-1]+self.times[1:],slevel=self.slevel)
+
+        return signal
+
+
     def jitter(self,stddev=0):
         """ Add a gaussian jitter to the change times of *self* signal object
         with the given standard deviation *stddev* and zero mean.
         Signal start and end times are unchanged."""
 
-        # simplify access
-        edges = self.edges
-        length = self.length
-
-        # add jitter to signal edges
-        for edge in range(1,length-1):
+        # add jitter to signal change times
+        for i in range(1,len(self.times)-1):
+            new_time = self.times[i] + random.gauss(0.0,stddev)
+           # print self.times[i],new_time,new_time - self.times[i]
             # if current edge has room to be moved forward or back, add jitter.
-            if edges[i+1] - edges[i-1] > 2:
-                edges[i] += int(random.gauss(0.0,jitter_stddev))
-                # limit jitter range inside prevoius and next edges
-                if edges[i] <= edges[i-1]:
-                    edges[i] = edges[i-1] + 1
-                elif edges[i] >= edges[i+1]:
-                    edges[i] = edges[i+1] - 1
+            if self.times[i - 1] < new_time and new_time < self.times[i + 1]:
+                self.times[i] = new_time
 
 
     def noise(self,start,end,freq_mean=1,freq_stddev=1,
@@ -314,9 +366,9 @@ class Signal:
                 ia = ia + 1
                 ib = ib + 1
 
-        # if one of A or B is exausted, the remaining part of
-        # the other is appended unchanged to the result: equivalent to oring
-        # it with zero.
+        # if one of A or B is exausted, the requested logic operation
+        # is applied to the remaining part of the other and to the
+        # terminating level of the first. The output is appended to result.
         if ia > ia_end and ib <= ib_end:
             in_a = self.slevel ^ ((ia - 1) & 1)
             if operator(in_a,0) != operator(in_a,1):
@@ -517,14 +569,14 @@ class Signal:
 
 #### functions
 
-def bin2pwm(bincode,period,elapse_0,elapse_1,level=1,origin=0,tscale=1.):
+def bin2pwm(bincode,period,elapse_0,elapse_1,active=1,origin=0,tscale=1.):
     """ Convert a binary code into a pulse width modulation signal in
     BTS format. Return a Signal class object. *bincode* is a tuple or a
     list of tuples: (*bit_length*, *bits*). *bit_length* is an integer
     with the number of bits. *bits* is an integer or a long integer with
     the binary code.  First bit is the LSB, last bit is the MSB.
     *period* is the period of pwm pulses. *elapse_0* is the elapse time
-    of a pulse coding a 0 bit. *elapse_1*, the same for a 1 bit. *level*
+    of a pulse coding a 0 bit. *elapse_1*, the same for a 1 bit. *active*
     is the active pulse level. *origin* is the time of the leading edge
     of the first signal pulse. """
 
@@ -533,7 +585,7 @@ def bin2pwm(bincode,period,elapse_0,elapse_1,level=1,origin=0,tscale=1.):
         bincode = [bincode]
 
     # allocate pwm signal
-    pwm = Signal(slevel=~level&1,tscale=tscale)
+    pwm = Signal(slevel=~active&1,tscale=tscale)
 
     # set conventional start
     pwm.times = [origin - 1]
@@ -562,24 +614,25 @@ def bin2pwm(bincode,period,elapse_0,elapse_1,level=1,origin=0,tscale=1.):
     return pwm
 
 
-def pwm2bin(pwm,threshold,below=0,level=1):
+def pwm2bin(pwm,elapse_0,elapse_1):
     """ Convert a pulse width modulation signal in BTS format to binary code.
     Return a tuple: see *bincode* in **bin2pwm**. *pwm* is the signal to
-    decode. *threshold* is the boundary of elapsed time of pulse active level,
-    between a 0 bit and a 1 bit. *below* = 0 means that below threshold there
-    is a 0 bit. *below* = 1 is viceversa. *level* says what is the signal
-    active level. Conversion is done by testing only the active pulse level
-    elapse. No check is done on pulse period. """
+    decode. For the other arguments see **bin2pwm**. Conversion is done by
+    testing only the active pulse level elapse against a threshold computed
+    as mean of elapse_0 and elapse_1. No check is done on pulse period. """
 
     code = 0
+    threshold = (elapse_0 + elapse_1) / 2.
+    one_is_above = elapse_0 < elapse_1
+    start_off = (len(pwm.times) & 1) + 3
 
-    for i in range(len(pwm.times)-3,-1,-2):
+    for i in range(len(pwm.times)-start_off,-1,-2):
         code <<= 1
         if pwm.times[i + 1] - pwm.times[i] > threshold:
-            if not below:
+            if one_is_above:
                 code |= 1
         else:
-            if below:
+            if not one_is_above:
                 code |= 1
 
     return ((len(pwm.times) - 1) / 2,code)
