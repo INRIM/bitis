@@ -15,6 +15,10 @@ between each two pulses and allows to keep in memory only the signal change
 times: for each second, the time of the pulse front edge and the time of the
 trailing edge.
 
+At present, no effort is made for speed optimization and the employed
+algorithms are esentially procedural. The only goals are "make it work in
+some way" and understand what can be a decent set of objects/methods/functions.
+
 BITIS is released under the GNU General Public License.
 
 At present, version 0.4.0, BITIS is in alpha status. Any debugging aid is
@@ -139,7 +143,7 @@ The sequence *times* is realized as list of integers or floats.
 Requirements
 ============
 
-To run the code, **Python 2.6 or later** or **Python 3.0 or later** must
+To run the code, **Python 2.6 or later** must
 already be installed.  The latest release is recommended.  Python is
 available from http://www.python.org/.
 
@@ -166,6 +170,10 @@ Changelog
     * Add unittest for split and join.
     * Rewrite jitter method.
     * Uniformate pwm2bin arguments to bin2pwm methods.
+    * Add tscale=1. argument in bin2pwm.
+    * Change to tscale=.1 argument in serial_tx.
+    * Fix slevel setup, signal start and end in bin2pwm.
+    * Add float times capability to BTS signals.
 
 **BITIS 0.3.0 released 11-Nov-2013**
 

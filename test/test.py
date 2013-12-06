@@ -103,12 +103,12 @@ class TestBitis(unittest.TestCase):
             start = random.uniform(-100.,100.)
             end = random.uniform(start,start + 100.)
             split = random.uniform(start+0.001,end-0.001)
-            freq_mean = (end - start) / 100.
-            width_mean = 0.2 / freq_mean
-            original = bt.Signal()
-            original.noise(start,end,freq_mean=0.1,width_mean=3)
+            period_mean = (end - start) / 100.
+            width_mean = 0.2  * period_mean
+            original = bt.noise(start,end,period_mean=period_mean,
+                    width_mean=width_mean)
 
-            # split and join 
+            # split and join
             signal_a, signal_b = original.split(split)
             signal_out = signal_a.join(signal_b)
 
@@ -265,10 +265,12 @@ class TestBitis(unittest.TestCase):
         for t in range(20):
 
             # create random signals
-            in_a = bt.Signal()
-            in_a.noise(0.0,100.0,freq_mean=0.1,width_mean=3)
-            in_b = bt.Signal()
-            in_b.noise(-10.0,90.0,freq_mean=0.3,width_mean=2)
+            start_a = random.uniform(-100.,100.)
+            end_a = random.uniform(start_a,start_a + 100.)
+            start_b = (start_a + end_a) / 2.
+            end_b = random.uniform(start_b,start_b + 100.)
+            in_a = bt.noise(start_a,end_a,period_mean=0.1,width_mean=3)
+            in_b = bt.noise(start_b,end_b,period_mean=0.3,width_mean=2)
 
             # direct xor
             xor1 = in_a ^ in_b
@@ -299,13 +301,11 @@ class TestBitis(unittest.TestCase):
         for t in range(1):
 
             # create random signals
-            in_a = bt.Signal()
-            in_a.noise(0,6,freq_mean=0.3,width_mean=3)
-            in_b = bt.Signal()
-            in_b.noise(0,7,freq_mean=0.3,width_mean=2)
+            in_a = bt.noise(0,8,period_mean=0.2,width_mean=3)
+            in_b = bt.noise(0,7,period_mean=0.3,width_mean=2)
 
             # test correlation
-            expected = in_a.correlation(in_b)
+            expected = in_a.correlation(in_b,step=0.05)
 
             # compare original test signal and output signal
             pl.figure(1)

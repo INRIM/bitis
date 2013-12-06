@@ -102,11 +102,23 @@ class Signal:
         return copy.deepcopy(self)
 
 
+    def start(self):
+        """ Ruturn the signal start time. """
+
+        return self.times[0]
+
+
+    def end(self):
+        """ Ruturn the signal end time. """
+
+        return self.times[-1]
+
+
     def shift(self,offset):
         """ Add *offset* to signal start and end times and to each signal
         change time. """
 
-        for i in range(len(self.times)):
+        for i in range(len(self)):
                 self.times[i] += offset
 
 
@@ -117,15 +129,39 @@ class Signal:
         Return the same input signal object with the reversed times. """
 
         # set start level: if times number is odd, must be inverted.
-        if len(self.times) & 1:
+        if len(self) & 1:
             self.slevel = not self.slevel
 
         # reverse change times, not first and last times (start and end).
-        for i in range(len(self.times)-2,0,-1):
+        for i in range(len(self)-2,0,-1):
             self.times[i] = self.times[-1] - self.times[i]
 
         # edges sequence needs to have ascending times
         self.times.sort()
+
+
+    def append(self,other):
+        """ Return the *self* signal modified by appending *other* signal
+        to it. If there is a time gap between the signals, fill it.
+        The start time of *other* must be greater or equal to end time of
+        *self*. The end level of *self* must be equal to the start level of
+        *other*. Otherwise, no append is done. """
+
+        # check for non overlap
+        if self.times[-1] > other.times[0]:
+            print 'OVERLAP',self.times[-1],other.times[0]
+            return
+
+        # check for same end-start level
+        if len(self) & 1 ^ self.slevel != other.slevel:
+            print 'NO SAME LEVEL'
+            return
+
+        # remove end time from self
+        del self.times[-1]
+
+        # append times of other (excluding start time) to self
+        self.times.extend(other.times[1:])
 
 
     def split(self,split):
@@ -141,7 +177,7 @@ class Signal:
             return None
 
         # search split point
-        for i in range(len(self.times)):
+        for i in range(len(self)):
             if split < self.times[i]:
                 break
 
@@ -176,11 +212,11 @@ class Signal:
 
         # join
         if self.times[0] < other.times[0]:
-            if len(self.times) & 1 ^ self.slevel != other.slevel:
+            if len(self) & 1 ^ self.slevel != other.slevel:
                 return None
             signal = Signal(self.times[:-1]+other.times[1:],slevel=self.slevel)
         else:
-            if len(other.times) & 1 ^ other.slevel != self.slevel:
+            if len(other) & 1 ^ other.slevel != self.slevel:
                 return None
             signal = Signal(other.times[:-1]+self.times[1:],slevel=self.slevel)
 
@@ -193,7 +229,7 @@ class Signal:
         Signal start and end times are unchanged."""
 
         # add jitter to signal change times
-        for i in range(1,len(self.times)-1):
+        for i in range(1,len(self)-1):
             new_time = self.times[i] + random.gauss(0.0,stddev)
            # print self.times[i],new_time,new_time - self.times[i]
             # if current edge has room to be moved forward or back, add jitter.
@@ -201,46 +237,10 @@ class Signal:
                 self.times[i] = new_time
 
 
-    def noise(self,start,end,freq_mean=1,freq_stddev=1,
-            width_mean=1,width_stddev=1,random_initial_value=True):
-        """ Fill current signal object with disturbing pulses. Pulses time
-        domain extends from *start* to *end*. Pulses
-        frequency and width follow a gaussian distribution: *freq_mean* and
-        *freq_stddev* are the given mean and standard deviation of frequency,
-        *width_mean* and *width_stddev* are the given mean and
-        standard deviation of the pulse width at 1 level.
-        Previous signal data is destroyed. """
+    def __len__(self):
+        """ Return the length of the change times sequence. """
 
-        # level 0 mean and stdev from frequency and pulse width moments
-        pause_mean = 1 / freq_mean - width_mean
-        pause_stddev = math.sqrt(freq_stddev**2 - width_stddev**2) / 2
-
-        # set start and a random start level
-        self.times = [start]
-        self.slevel = random.randint(0,1)
-
-        # insert first pause interval end
-        last_pause_end = \
-                abs(int(random.gauss(pause_mean,pause_stddev))) + 1 + start
-        if last_pause_end > end:
-            self.times.append(end)
-            return
-
-        # make noise pulses
-        while True:
-            # not really true gauss: negative branch reflected over positive and
-            # zero value not allowed.
-            width = abs(int(random.gauss(width_mean,width_stddev))) + 1
-            pause = abs(int(random.gauss(pause_mean,pause_stddev))) + 1
-            if last_pause_end + width + pause > end:
-                break
-            self.times.append(last_pause_end)
-            self.times.append(last_pause_end + width)
-            last_pause_end = last_pause_end + width + pause
-
-        # add end if not already reached by last pulse
-        if self.times[-1] < end:
-            self.times.append(end)
+        return len(self.times)
 
 
     def __eq__(self,other):
@@ -334,7 +334,7 @@ class Signal:
         out_sig.slevel = operator(in_a,in_b)
         out = out_sig.slevel
 
-        # get all edges, one at a time, from the two lists as sorted by
+        # get all edges, one at a time, from the two lists sorted by
         # ascending time, do it until the end of one of the two lists is
         # reached.
         out_sig.times = [start]
@@ -588,7 +588,7 @@ def bin2pwm(bincode,period,elapse_0,elapse_1,active=1,origin=0,tscale=1.):
     pwm = Signal(slevel=~active&1,tscale=tscale)
 
     # set conventional start
-    pwm.times = [origin - 1]
+    pwm.times = [origin - period / 100.]
 
     # convert a tuple at a time
     for bit_num, code in bincode:
@@ -653,7 +653,7 @@ def serial_tx(chars,times,char_bits=8,parity='off',stop_bits=2,baud=50,
     active high. """
 
     # init serial line signal 
-    sline = Signal([times[0]-10],slevel=0,tscale=tscale)
+    sline = Signal([times[0]-0.1/baud],slevel=0,tscale=tscale)
 
     # bit period
     bit_time = tscale / baud
@@ -828,5 +828,56 @@ def __parity(value):
         value &= value - 1
         ones += 1
     return ones & 1
+
+
+def noise(origin,end,period_mean=1,period_stddev=1,
+        width_mean=1,width_stddev=1,random_initial_value=True):
+    """ Return a signal object with random pulses. *origin* is
+    the time of the first pulse trailing edge. *end* is the signal
+    end time. Pulses
+    period and width follow a gaussian distribution: *period_mean* and
+    *period_stddev* are the given mean and standard deviation of pulses
+    period, *width_mean* and *width_stddev* are the given mean and
+    standard deviation of the pulse width at 1 level. """
+
+    # allocate noise signal
+    noise = Signal()
+
+    # if required, set a random start level. Else default to level 0.
+    if random_initial_value:
+        noise.slevel = random.randint(0,1)
+    else:
+        noise.slevel = 0
+
+    # set start just before origin
+    noise.times = [origin - period_mean / 100.]
+
+    # level 0 mean and stdev from frequency and pulse width moments
+    pause_mean = period_mean - width_mean
+    pause_stddev = math.sqrt(period_stddev**2 + width_stddev**2) / 2
+
+    # insert first pause interval end
+    last_pause_end = \
+            abs(random.gauss(pause_mean,pause_stddev)) + origin
+    if last_pause_end > end:
+        noise.times.append(end)
+        return
+
+    # make noise pulses
+    while True:
+        # not really true gauss: negative branch reflected over positive.
+        width = abs(random.gauss(width_mean,width_stddev))
+        pause = abs(random.gauss(pause_mean,pause_stddev))
+        if last_pause_end + width + pause > end:
+            break
+        noise.times.append(last_pause_end)
+        noise.times.append(last_pause_end + width)
+        last_pause_end = last_pause_end + width + pause
+
+    # add end if not already reached by last pulse
+    if noise.times[-1] < end:
+        noise.times.append(end)
+
+    return noise
 
 #### END
