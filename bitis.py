@@ -892,4 +892,32 @@ def noise(origin,end,period_mean=1,period_stddev=1,
 
     return noise
 
+
+def square(origin,end,period,width,active=1):
+    """ Return a signal object with a square wave with constant period
+    and constant duty cycle. *origin* is the time of the first pulse
+    trailing edge. *end* is the signal end time. *period* is the pulse
+    period. *width* is the pulse width at active level. """
+
+    # allocate noise signal
+    square = Signal()
+
+    # set start level according to active level
+    square.slevel = ~ active & 1
+
+    # set start just before origin
+    square.times = [origin - period / 100.]
+
+    # insert first pause interval end
+    while origin < end:
+        square.times.append(origin)
+        square.times.append(origin + width)
+        origin = origin + period
+
+    # add end if not already reached by last pulse
+    if square.times[-1] < end:
+        square.times.append(end)
+
+    return square
+
 #### END
