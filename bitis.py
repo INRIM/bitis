@@ -500,36 +500,48 @@ class Signal:
         return integral
 
 
-    def correlation(self,other,normalize=False,step=1):
+    def correlation(self,other,normalize=False,step_size=1,step_num=None,
+            step_start=None):
         """ Return the correlation function of two given signal objects:
         *self* and *other*. Output can be absolute: integral of xor between
         shifted *self* and *other* signals (*normalize=False*). Output
         can be normalized (*normalize=True*) in the range -1 +1.
-        The correlation function time scale is set by *step*.
+        The correlation function time scale is set by *step_size*.
         The correlation function is returned as two lists: the correlation
         values and the correlation time shifts. The origin of time shift
         is set when the shifted start time of *self* is equal to the start
-        time of *other*.
+        time of *other*. If *step_start* is defined, reduce *self* shift by
+        *step_start* amount, shifting self right by this amount. If *step_num*
+        is defined, says for how many steps the correlation is to be computed.
         """
 
         # simplify variables access
         sig_a = self.clone()
 
         # take the first edge of signal B as origin. Keep signal B fixed in
-        # time and slide signal A. To start, shift A to put A end on B start.
+        # time and slide signal A. If step start is not defined, shift A to
+        # put A end on B start. If step start is defined, reduce A shift by
+        # step_start amount, shifting A right by this amount.
         shift = other.times[0] - self.times[-1]
+        if step_start:
+            shift = shift + step_start
         for i in range(len(sig_a.times)):
             sig_a.times[i] = sig_a.times[i] + shift
+
+        # if step num is undefined, default to correlate over all possible
+        # self and other intersections.
+        if step_num == None:
+            tmax = self.times[-1]-self.times[0]+other.times[-1]-other.times[0]
+            step_num = int(tmax / step_size)
 
         # compute correlation step by step
         corr = []
         shifts = []
-        for t in range(0,self.times[-1] - self.times[0]
-                + other.times[-1] - other.times[0] - 1,step):
+        for step in range(step_num):
 
             # shift right A by step units
             for i in range(len(sig_a.times)):
-                sig_a.times[i] = sig_a.times[i] + step
+                sig_a.times[i] = sig_a.times[i] + step_size
 
             # correlation among signal A and B
             if normalize:
@@ -537,7 +549,7 @@ class Signal:
             else:
                 corr += [(sig_a ^ other).integral(0,normalize=False)]
 
-            shifts += [t + shift + 1]
+            shifts += [step * step_size + shift + 1]
 
         return corr, shifts
 

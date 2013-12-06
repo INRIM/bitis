@@ -305,7 +305,7 @@ class TestBitis(unittest.TestCase):
             in_b = bt.noise(0,7,period_mean=0.3,width_mean=2)
 
             # test correlation
-            expected = in_a.correlation(in_b,step=0.05)
+            expected = in_a.correlation(in_b,step_size=0.05)
 
             # compare original test signal and output signal
             pl.figure(1)
