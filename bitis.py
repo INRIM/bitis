@@ -37,7 +37,7 @@ import sys              # sys constants
 
 # define global variables
 
-__version__ = '0.4.0'
+__version__ = '0.5.0'
 __author__ = 'Fabrizio Pollastri <f.pollastri@inrim.it>'
 
 

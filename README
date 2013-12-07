@@ -36,7 +36,7 @@ module.
 .. literalinclude:: ../examples/xor_logic.py
     :linenos:
     :language: python
-    :lines: 30-50
+    :lines: 30-48
 
 The following example shows the plotting of two random signals and their
 correlation function.
@@ -44,7 +44,7 @@ correlation function.
 .. literalinclude:: ../examples/correlation.py
     :linenos:
     :language: python
-    :lines: 30-77
+    :lines: 30-73
 
 This is the plotting result.
 
@@ -57,7 +57,7 @@ and 50 baud tranmitting speed.
 .. literalinclude:: ../examples/serial_tx.py
     :linenos:
     :language: python
-    :lines: 30-75
+    :lines: 30-61
 
 This is the plotting result. The x axis units are milliseconds.
 
@@ -89,6 +89,8 @@ Functions
 .. autofunction:: pwm2bin
 .. autofunction:: serial_tx
 .. autofunction:: serial_rx
+.. autofunction:: noise
+.. autofunction:: square
 
 
 BTS format
