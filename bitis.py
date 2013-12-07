@@ -558,7 +558,7 @@ class Signal:
         """ Plot signal *self* as square wave. Requires `Matplotlib`_.
         *\*args* and *\**kargs* are passed on to matplotlib functions."""
 
-        from matplotlib.pyplot import plot, yticks
+        from matplotlib.pyplot import plot, ylim, yticks
 
         # generate signal levels
         levels = [self.slevel]
@@ -570,6 +570,7 @@ class Signal:
         if not kargs:
             kargs = {}
         kargs.update({'drawstyle':'steps-post'})
+        ylim(-0.1,1.1)
         yticks([0,1])
 
         # if there are given args, pass them

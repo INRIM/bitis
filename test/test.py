@@ -307,7 +307,7 @@ class TestBitis(unittest.TestCase):
             # test correlation
             expected = in_a.correlation(in_b,step_size=0.05)
 
-            # compare original test signal and output signal
+            # plot correlation result
             pl.figure(1)
             pl.suptitle('BITIS: correlation of two signals.')
             pl.subplot(3,1,1)

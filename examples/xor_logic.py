@@ -32,10 +32,8 @@ import bitis as bt
 ## Check the equation: a xor b = a and not b  or  not a and b
 
 # create two random signals
-a = bt.Signal()
-a.noise(0,100,freq_mean=0.1,width_mean=3)
-b = bt.Signal()
-b.noise(-10,90,freq_mean=0.3,width_mean=2)
+a = bt.noise(0,100,period_mean=10,width_mean=3)
+b = bt.noise(-10,90,period_mean=4,width_mean=2)
 
 # direct xor
 xor1 = a ^ b

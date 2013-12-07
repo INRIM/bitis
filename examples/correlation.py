@@ -36,10 +36,8 @@ import matplotlib.pyplot as pl
 random.seed(1)
 
 # create random signals
-in_a = bt.Signal()
-in_a.noise(-2,12,freq_mean=0.3,width_mean=3)
-in_b = bt.Signal()
-in_b.noise(-2,12,freq_mean=0.3,width_mean=2)
+in_a = bt.noise(-2,12,period_mean=6,width_mean=3)
+in_b = bt.noise(-2,12,period_mean=4,width_mean=2)
 
 # compute correlation
 corr_ab = in_a.correlation(in_b)
@@ -51,7 +49,6 @@ pl.suptitle('BITIS: correlation of two signals.')
 # plot signal a
 pl.subplot(3,1,1)
 pl.xlim(-2,12)
-pl.ylim(-0.1,1.1)
 pl.ylabel('signal a')
 pl.xlabel('time')
 in_a.plot() 
@@ -59,7 +56,6 @@ in_a.plot()
 # plot signal b
 pl.subplot(3,1,2)
 pl.xlim(-2,12)
-pl.ylim(-0.1,1.1)
 pl.ylabel('signal b')
 pl.xlabel('time')
 in_b.plot() 
