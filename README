@@ -16,7 +16,7 @@ times: for each second, the time of the pulse front edge and the time of the
 trailing edge.
 
 At present, no effort is made for speed optimization and the employed
-algorithms are esentially procedural. The only goals are "make it work in
+algorithms are essentially procedural. The only goal is "make it work in
 some way" and understand what can be a decent set of objects/methods/functions.
 
 BITIS is released under the GNU General Public License.

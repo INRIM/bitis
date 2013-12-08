@@ -114,6 +114,12 @@ class Signal:
         return self.times[-1]
 
 
+    def elapse(self):
+        """ Ruturn the signal elapse time: end time - start time. """
+
+        return self.times[-1] - self.times[0]
+
+
     def shift(self,offset):
         """ Add *offset* to signal start and end times and to each signal
         change time. """
@@ -281,24 +287,24 @@ class Signal:
 
         # find index of first change after start
         
-        for ia_start in range(len(self.times)):
+        for ia_start in range(len(self)):
             if self.times[ia_start] > start:
                 break
 
-        for ib_start in range(len(other.times)):
+        for ib_start in range(len(other)):
             if other.times[ib_start] > start:
                 break
 
         # find index of last change before end
 
-        for ia_end in range(-1,-len(self.times)-1,-1):
+        for ia_end in range(-1,-len(self)-1,-1):
             if self.times[ia_end] < end:
-                ia_end += len(self.times)
+                ia_end += len(self)
                 break
 
-        for ib_end in range(-1,-len(other.times)-1,-1):
+        for ib_end in range(-1,-len(other)-1,-1):
             if other.times[ib_end] < end:
-                ib_end += len(other.times)
+                ib_end += len(other)
                 break
 
         # compute level before first change after start
@@ -440,7 +446,7 @@ class Signal:
 
         # simultaneous edges cancel each other, so, if any, remove them.
         i = 1 
-        while i < len(xor_sig.times) - 2:
+        while i < len(xor_sig) - 2:
             if not xor_sig.times[i] - xor_sig.times[i + 1]:
                 del xor_sig.times[i]
                 del xor_sig.times[i]
@@ -481,7 +487,7 @@ class Signal:
 
         # do summation between first and last signal changes
         changes_int = 0
-        for i in range(1,len(self.times),2):
+        for i in range(1,len(self),2):
             try:
                 changes_int = changes_int + self.times[i + 1] - self.times[i]
             except:
@@ -522,16 +528,15 @@ class Signal:
         # time and slide signal A. If step start is not defined, shift A to
         # put A end on B start. If step start is defined, reduce A shift by
         # step_start amount, shifting A right by this amount.
-        shift = other.times[0] - self.times[-1]
+        shift = other.times[0] - self.times[-1] - step_size
         if step_start:
             shift = shift + step_start
-        for i in range(len(sig_a.times)):
-            sig_a.times[i] = sig_a.times[i] + shift
+        sig_a.shift(shift)
 
         # if step num is undefined, default to correlate over all possible
         # self and other intersections.
         if step_num == None:
-            tmax = self.times[-1]-self.times[0]+other.times[-1]-other.times[0]
+            tmax = self.elapse() + other.elapse()
             step_num = int(tmax / step_size)
 
         # compute correlation step by step
@@ -540,8 +545,7 @@ class Signal:
         for step in range(step_num):
 
             # shift right A by step units
-            for i in range(len(sig_a.times)):
-                sig_a.times[i] = sig_a.times[i] + step_size
+            sig_a.shift(step_size)
 
             # correlation among signal A and B
             if normalize:
@@ -549,7 +553,7 @@ class Signal:
             else:
                 corr += [(sig_a ^ other).integral(0,normalize=False)]
 
-            shifts += [step * step_size + shift + 1]
+            shifts += [step * step_size + shift + step_size]
 
         return corr, shifts
 
@@ -562,7 +566,7 @@ class Signal:
 
         # generate signal levels
         levels = [self.slevel]
-        for i in range(1,len(self.times) - 1):
+        for i in range(1,len(self) - 1):
             levels += [not levels[-1]]
         levels += [levels[-1]]
 
@@ -637,9 +641,9 @@ def pwm2bin(pwm,elapse_0,elapse_1):
     code = 0
     threshold = (elapse_0 + elapse_1) / 2.
     one_is_above = elapse_0 < elapse_1
-    start_off = (len(pwm.times) & 1) + 3
+    start_off = (len(pwm) & 1) + 3
 
-    for i in range(len(pwm.times)-start_off,-1,-2):
+    for i in range(len(pwm)-start_off,-1,-2):
         code <<= 1
         if pwm.times[i + 1] - pwm.times[i] > threshold:
             if one_is_above:
@@ -648,7 +652,7 @@ def pwm2bin(pwm,elapse_0,elapse_1):
             if not one_is_above:
                 code |= 1
 
-    return ((len(pwm.times) - 1) / 2,code)
+    return ((len(pwm) - 1) / 2,code)
 
 
 def serial_tx(chars,times,char_bits=8,parity='off',stop_bits=2,baud=50,
@@ -748,7 +752,7 @@ def serial_rx(sline,char_bits=8,parity='off',stop_bits=2,baud=50):
     # init vars
     bit_time = sline.tscale / baud
     i = 1 
-    imax = len(sline.times) - 1
+    imax = len(sline) - 1
     start = sline.times[0]
     char = 0
 
