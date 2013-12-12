@@ -528,7 +528,7 @@ class Signal:
         # time and slide signal A. If step start is not defined, shift A to
         # put A end on B start. If step start is defined, reduce A shift by
         # step_start amount, shifting A right by this amount.
-        shift = other.times[0] - self.times[-1] - step_size
+        shift = other.times[0] - self.times[-1]
         if step_start:
             shift = shift + step_start
         sig_a.shift(shift)
@@ -542,7 +542,7 @@ class Signal:
         # compute correlation step by step
         corr = []
         shifts = []
-        for step in range(step_num):
+        for step in range(1,step_num + 1):
 
             # shift right A by step units
             sig_a.shift(step_size)
@@ -553,7 +553,7 @@ class Signal:
             else:
                 corr += [(sig_a ^ other).integral(0,normalize=False)]
 
-            shifts += [step * step_size + shift + step_size]
+            shifts += [step * step_size + shift]
 
         return corr, shifts
 
@@ -848,21 +848,24 @@ def __parity(value):
 
 
 def noise(origin,end,period_mean=1,period_stddev=1,
-        width_mean=1,width_stddev=1,random_initial_value=True):
+        width_mean=1,width_stddev=1,active='random'):
     """ Return a signal object with random pulses. *origin* is
     the time of the first pulse trailing edge. *end* is the signal
     end time. Pulses
     period and width follow a gaussian distribution: *period_mean* and
     *period_stddev* are the given mean and standard deviation of pulses
     period, *width_mean* and *width_stddev* are the given mean and
-    standard deviation of the pulse width at 1 level. """
+    standard deviation of the pulse width at 1 level. *active* is the
+    active pulse level, can be 0,1,'random'. """
 
     # allocate noise signal
     noise = Signal()
 
     # if required, set a random start level. Else default to level 0.
-    if random_initial_value:
+    if active == 'random':
         noise.slevel = random.randint(0,1)
+    elif active == 0:
+        noise.slevel = 1
     else:
         noise.slevel = 0
 

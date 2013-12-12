@@ -1,9 +1,22 @@
+.. toctree::
+   :hidden:
+   :maxdepth: 2
+   :numbered:
+
+   examples
+   modulereference
+   btsformat
+   changelog
+
+
 ==============================================
 BITIS, Binary Timed Signals Processing Library
 ==============================================
 
+
 **BITIS** is a python module that implements a full set of operators over
-binary signals represented as BTS format. The `BTS format`_ is a computer
+binary signals represented as BTS format. The `BTS format <./btsformat.html>`_
+is a computer
 memory representation of a binary signal that can have a very compact
 memory footprint when the signal has a low rate of change with respect
 to its sampling period.
@@ -27,121 +40,6 @@ welcome.
 For any question, suggestion, contribution contact the author Fabrizio Pollastri <f.pollastri_a_t_inrim.it>.
 
 
-Usage examples
-==============
-
-This simple example shows some logic operations supported by the **BITIS**
-module.
-
-.. literalinclude:: ../examples/xor_logic.py
-    :linenos:
-    :language: python
-    :lines: 30-48
-
-The following example shows the plotting of two random signals and their
-correlation function.
-
-.. literalinclude:: ../examples/correlation.py
-    :linenos:
-    :language: python
-    :lines: 30-73
-
-This is the plotting result.
-
-.. image:: correlation.png
-
-The following example shows the signal of an asynchronous serial interface
-coding the ASCII character "U" with 8 character bits, odd parity, 2 stop bits
-and 50 baud tranmitting speed.
-
-.. literalinclude:: ../examples/serial_tx.py
-    :linenos:
-    :language: python
-    :lines: 30-61
-
-This is the plotting result. The x axis units are milliseconds.
-
-.. image:: serial_tx.png
-
-
-Module reference
-================
-
-The **BITIS** modules defines one class realizing a BTS signal with
-a set of methods implementing several unary or binary operators over the
-signal. There are also some functions for data interface.
-
-
-Objects and methods
--------------------
-
-.. currentmodule:: bitis
-.. autoclass:: Signal
-   :special-members:
-   :members:
-
-
-Functions
----------
-
-.. currentmodule:: bitis
-.. autofunction:: bin2pwm
-.. autofunction:: pwm2bin
-.. autofunction:: serial_tx
-.. autofunction:: serial_rx
-.. autofunction:: noise
-.. autofunction:: square
-
-
-BTS format
-==========
-
-The scope of this memo is to describe the BTS, Binary Timed Signal. A format
-for compact storage of binary signals in computer memory.
-Binary signals are signal that can have only two levels/states, zero or one.
-
-The *BTS* format is composed by 3 elements.
-
-1. The change times.
-2. The start level.
-3. The time scale.
-
-**Change times**
-
-This sequence stores all the times where the signal changes its level from
-0 to 1 or viceversa. The first and the last sequence items have a different
-meaning: they are respectively the start time and the end time of the signal.
-The signal start and end are the boundaries of the signal domain. Outside
-this interval, the signal is to be itended as not defined.
-The change times sequence may be empty: in this case the signal must
-be threated as empty or null. The sequence may have 2 items: in this case
-the signal has a constant level along all its domain and there are no level
-changes. The sequence may have 3 or more items: in this case the signal has
-1 or more level changes. A sequence with only one item is not allowed.
-The sequence must be sorted in ascending order.
-
-**Start level**
-
-If the change times sequence has 3 or more items, the start level value
-specifies the signal level from the signal start time to the first change time.
-If the change times sequence has 2 items, the signal has a constant level
-that is equal to the start level value.
-
-**Time scale**
-
-An arbitrary unit of time can be chosen to express the values of change times.
-The time scale value is the ratio: 1 second / arbitrary time unit.
-
-
-BTS python implementation
-=========================
-
-**BITIS** implements the *BTS* format with the *Signal* class. Each BTS
-signal is an instance of this class. The three elements of the BTS format
-are the three attributes (*times, slevel, tscale*) of the *Signal* class.
-The sequence *times* is realized as list of integers or floats.
-
-
 Requirements
 ============
 
@@ -160,56 +58,6 @@ Installation
 2. Get root privileges and install the package. Command::
 
     pip install bitis
-
-
-Changelog
-=========
-
-**BITIS 0.5.0 released 9-Dec-2013**
-
-    * Embed y limits setting into plot method.
-    * Change examples for changed noise method.
-    * Add method square for signal generation of a periodc square wave.
-    * Add a more fine control in correlation function computation.
-    * Add signal append method.
-    * Add method start, return signal start time.
-    * Add method end, return signal end time.
-    * Add method len, return signal change times sequence length.
-    * Change noise from method to function.
-    * Change start times computation in bin2pwn, serial_tx to minimize
-      time elapse from start to first change.
-    * Fix 0.4.0 release changelog: missing changes.
-
-**BITIS 0.4.0 released 2-Dec-2013**
-
-    * Add signal split method.
-    * Add two signals join method.
-    * Add unittest for split and join.
-    * Rewrite jitter method.
-    * Uniformate pwm2bin arguments to bin2pwm methods.
-    * Add tscale=1. argument in bin2pwm.
-    * Change to tscale=.1 argument in serial_tx.
-    * Fix slevel setup, signal start and end in bin2pwm.
-    * Add float times capability to BTS signals.
-
-**BITIS 0.3.0 released 11-Nov-2013**
-
-    * Add async serial transmitter (bits.serial_tx method) from chars to BTS
-      serial line signal.
-    * Add async serial receiver (bitis.serial_rx method) from BTS serial line
-      to chars.
-    * Add async serial transmitter example: serial_tx.py.
-    * Add unittest for async serial tx and rx.
-    * Modified plot method: only 0,1 ticks on y axis.
-
-**BITIS 0.2.0 released 4-Nov-2013**
-
-    * Add PWM coder and decoder between a BTS signal (PWM) and a binary code.
-    * New correlation example.
-
-**BITIS 0.1.0 released 29-Oct-2013**
-
-    * First release.
 
 
 .. _Matplotlib: http://matplotlib.org
