@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # .+
 # .context    : Binary Timed Signal Processing Processing Library
-# .title      : BITIS distutils setup
+# .title      : Bitis distutils setup
 # .kind	      : python source
 # .author     : Fabrizio Pollastri
 # .site	      : Torino - Italy
@@ -9,14 +9,14 @@
 # .copyright  :	(c) 2013 Fabrizio Pollastri
 # .license    : GNU General Public License (see below)
 #
-# This file is part of "BITIS, Binary Timed Signal Processig Library".
+# This file is part of "Bitis, Binary Timed Signal Processig Library".
 #
-# BITIS is free software; you can redistribute it and/or modify
+# Bitis is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 #
-# BITIS is distributed in the hope that it will be useful,
+# Bitis is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
@@ -50,26 +50,26 @@ AUTHOR_EMAIL = re.search('.*?<(.*?)>',bitis.__author__).group(1)
 
 # do setup
 setup (
-  name = 'bitis',
+  name = 'Bitis',
   version = bitis.__version__,
   author = AUTHOR,
   author_email = AUTHOR_EMAIL,
   maintainer = AUTHOR,
   maintainer_email = AUTHOR_EMAIL,
-  url = 'http://bitis.inrim.it',
-#  download_url = 'http://bitis.inrim.it/dist/bitis-' + VERSION + '.tar.gz',
+  url = 'http://Bitis.inrim.it',
+#  download_url = 'http://Bitis.inrim.it/dist/Bitis-' + VERSION + '.tar.gz',
   license = 'http://www.gnu.org/licenses/gpl.txt',
   platforms = ['Linux'],
-  description =  "BITIS is a processing library for binary timed signals",
+  description =  "Bitis is a processing library for binary timed signals",
   long_description = """
-  BITIS is a python module that implements a full set of operators over
+  Bitis is a python module that implements a full set of operators over
   binary signals represented as BTS format. The BTS format is a computer
   memory representation of a binary signal that can have a very compact
   memory footprint when the signal has a low rate of change with respect
   to its sampling period.
   """,
   classifiers = filter(None, classifiers.split("\n")),
-  py_modules = ['bitis'])
+  py_modules = ['Bitis'])
 
 # cleanup
 if os.access('MANIFEST',os.F_OK):

@@ -2,7 +2,7 @@
 Module reference
 ================
 
-The **BITIS** modules defines one class realizing a BTS signal with
+The **Bitis** modules defines one class realizing a BTS signal with
 a set of methods implementing several unary or binary operators over the
 signal. There are also some functions for data interface.
 

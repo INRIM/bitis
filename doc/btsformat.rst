@@ -2,6 +2,9 @@
 BTS format
 ==========
 
+Definition
+----------
+
 The scope of this memo is to describe the BTS, Binary Timed Signal. A format
 for compact storage of binary signals in computer memory.
 Binary signals are signal that can have only two levels/states, zero or one.
@@ -39,8 +42,8 @@ An arbitrary unit of time can be chosen to express the values of change times.
 The time scale value is the ratio: 1 second / arbitrary time unit.
 
 
-BTS python implementation
-=========================
+Python implementation
+---------------------
 
 **BITIS** implements the *BTS* format with the *Signal* class. Each BTS
 signal is an instance of this class. The three elements of the BTS format

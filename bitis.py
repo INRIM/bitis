@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # .+
 # .context    : Binary Timed Signal Processing Processing Library
-# .title      : BITIS main module
+# .title      : Bitis main module
 # .kind	      : python source
 # .author     : Fabrizio Pollastri
 # .site	      : Torino - Italy
@@ -9,14 +9,14 @@
 # .copyright  :	(c) 2013 Fabrizio Pollastri
 # .license    : GNU General Public License (see below)
 #
-# This file is part of "BITIS, Binary Timed Signal Processig Library".
+# This file is part of "Bitis, Binary Timed Signal Processig Library".
 #
-# BITIS is free software; you can redistribute it and/or modify
+# Bitis is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 #
-# BITIS is distributed in the hope that it will be useful,
+# Bitis is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
@@ -42,6 +42,13 @@ __author__ = 'Fabrizio Pollastri <f.pollastri@inrim.it>'
 
 
 #### classes
+
+#class SignalStream(Signal):
+#    """ Add streaming to Signal class. Streaming is to be intend as the
+#    capability to append new signal chunks to the signal stream and
+#    simultaneously discard the older signal parts of the signal stream
+#    in such a way that the signal stream elapse time is """
+#    pass
 
 class Signal:
     """

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# BITIS documentation build configuration file, created by
+# Bitis documentation build configuration file, created by
 # sphinx-quickstart on Sun Oct 27 19:18:40 2013.
 #
 # This file is execfile()d with the current directory set to its containing dir.
@@ -37,10 +37,10 @@ source_suffix = '.rst'
 #source_encoding = 'utf-8-sig'
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = 'contents'
 
 # General information about the project.
-project = u'BITIS'
+project = u'Bitis'
 copyright = u'2013, Fabrizio Pollastri'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -96,7 +96,7 @@ html_theme = 'default'
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-#html_theme_options = {}
+html_theme_options = {"stickysidebar": "true"}
 
 # Add any paths that contain custom themes here, relative to this directory.
 #html_theme_path = []
@@ -164,7 +164,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'BITISdoc'
+htmlhelp_basename = 'Bitisdoc'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -183,7 +183,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'BITIS.tex', u'BITIS Documentation',
+  ('index', 'Bitis.tex', u'Bitis Documentation',
    u'Fabrizio Pollastri', 'manual'),
 ]
 
@@ -213,7 +213,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'bitis', u'BITIS Documentation',
+    ('index', 'bitis', u'Bitis Documentation',
      [u'Fabrizio Pollastri'], 1)
 ]
 
@@ -227,8 +227,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'BITIS', u'BITIS Documentation',
-   u'Fabrizio Pollastri', 'BITIS', 'One line description of project.',
+  ('index', 'Bitis', u'Bitis Documentation',
+   u'Fabrizio Pollastri', 'Bitis', 'One line description of project.',
    'Miscellaneous'),
 ]
 
