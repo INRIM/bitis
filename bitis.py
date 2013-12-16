@@ -37,7 +37,7 @@ import sys              # sys constants
 
 # define global variables
 
-__version__ = '0.5.0'
+__version__ = '0.6.0'
 __author__ = 'Fabrizio Pollastri <f.pollastri@inrim.it>'
 
 
@@ -586,7 +586,7 @@ class Signal:
 
 
     def plot(self,*args,**kargs):
-        """ Plot signal *self* as square wave. Requires `Matplotlib`_.
+        """ Plot signal *self* as square wave. Requires Matplotlib.
         *\*args* and *\**kargs* are passed on to matplotlib functions."""
 
         from matplotlib.pyplot import plot, ylim, yticks
