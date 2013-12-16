@@ -407,6 +407,35 @@ class TestBitis(unittest.TestCase):
             self.assertTrue(all([s == 0 for s in status]))
 
 
+    def test_stream(self):
+        """ Divide a signal in several chunks by subsequent splits. Pass them
+        to a stream signal. Save stream excess into an accumulator. Compare
+        at each split the original signal with the concatenation of
+        accumulator, stream and most recent part of the last split. """
+        
+        # make random sequence repeteable
+        random.seed(1)
+
+        # create signals
+        original = bt.noise(0,200)
+        stream = bt.Signal()
+        accumulator = bt.Signal()
+
+        # split original several times, pass first splited part to a stream
+        # signal, append stream excess to an accumulator signal.
+        # At each step, check if original is equal to part b + stream + acc.
+        start = 0.
+        tosplit = original
+        for i in range(10):
+            split = random.uniform(start,200.)
+            start = split
+            part_a, part_b = tosplit.split(split)
+            tosplit = part_b
+            excess, stream = stream.stream(part_a,30)
+            accumulator.append(excess)
+            self.assertEqual(original,accumulator + stream + part_b)
+
+
 # main
 
 if __name__ == '__main__':

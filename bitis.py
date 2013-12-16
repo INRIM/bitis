@@ -43,13 +43,6 @@ __author__ = 'Fabrizio Pollastri <f.pollastri@inrim.it>'
 
 #### classes
 
-#class SignalStream(Signal):
-#    """ Add streaming to Signal class. Streaming is to be intend as the
-#    capability to append new signal chunks to the signal stream and
-#    simultaneously discard the older signal parts of the signal stream
-#    in such a way that the signal stream elapse time is """
-#    pass
-
 class Signal:
     """
     Implements the concept of "Binary Timed Signal": a memory
@@ -109,6 +102,14 @@ class Signal:
         return copy.deepcopy(self)
 
 
+    def clone_into(self,other):
+        """ Full copy of self into other. """
+
+        other.slevel = self.slevel
+        other.times = self.times[:]
+        other.tscale = self.tscale
+
+
     def start(self):
         """ Ruturn the signal start time. """
 
@@ -160,21 +161,34 @@ class Signal:
         *self*. The end level of *self* must be equal to the start level of
         *other*. Otherwise, no append is done. """
 
+        # if other is empty, no append.
+        if not other:
+            return self
+
+        # if self is empty, copy other into self.
+        if not self:
+            other.clone_into(self)
+            return other
+
         # check for non overlap
-        if self.times[-1] > other.times[0]:
-            print 'OVERLAP',self.times[-1],other.times[0]
-            return
+        assert self.times[-1] <= other.times[0], \
+                'self and other overlaps in time.\n' \
+                + 'self end = ' + str(self.end()) \
+                + ' , other start = ' + str(other.start())
 
         # check for same end-start level
-        if len(self) & 1 ^ self.slevel != other.slevel:
-            print 'NO SAME LEVEL'
-            return
+        assert len(self) & 1 ^ self.slevel == other.slevel, \
+                'self end level differ from other start level.\n' \
+                + 'self end level = ' + str(len(self) & 1 ^ self.slevel) \
+                + ' , other start level = ' + str(other.slevel)
 
         # remove end time from self
         del self.times[-1]
 
         # append times of other (excluding start time) to self
         self.times.extend(other.times[1:])
+
+        return self
 
 
     def split(self,split):
@@ -194,19 +208,19 @@ class Signal:
             if split < self.times[i]:
                 break
 
-        # signal A 
-        signal_a = Signal(self.times[0:i],slevel=self.slevel,
+        # older signal part: pre split time. 
+        older = Signal(self.times[0:i],slevel=self.slevel,
                 tscale=self.tscale)
-        if split != signal_a.times[-1]:
-            signal_a.times.append(split)
+        if split != older.times[-1]:
+            older.times.append(split)
 
-        # signal B
-        signal_b = Signal(self.times[i:],slevel=(i-1) & 1 ^ self.slevel,
+        # newer signal part: post split time.
+        newer = Signal(self.times[i:],slevel=(i-1) & 1 ^ self.slevel,
                 tscale=self.tscale)
-        if split != signal_b.times[0]:
-            signal_b.times.insert(0,split)
+        if split != newer.times[0]:
+            newer.times.insert(0,split)
 
-        return signal_a, signal_b
+        return older, newer
 
 
     def join(self,other):
@@ -248,6 +262,12 @@ class Signal:
             # if current edge has room to be moved forward or back, add jitter.
             if self.times[i - 1] < new_time and new_time < self.times[i + 1]:
                 self.times[i] = new_time
+
+
+    def __add__(self,other):
+        """ Concatenate (join) other to self. """
+
+        return self.join(other)
 
 
     def __len__(self):
@@ -589,6 +609,24 @@ class Signal:
             plot(self.times,levels,*args,**kargs)
         else:
             plot(self.times,levels,**kargs)
+
+
+    def stream(self,other,elapse):
+        """ Append *other* signal to *self* signal. If self signal elapse time
+        becomes greater than *elapse*, delete from the older part of self until
+        its elapse time is less or equal than *elapse*. """
+
+        self.append(other)
+
+        # if self elapse below allowed max, return "appendend" self.
+        if self.elapse() <= elapse:
+            return (Signal(),self)
+
+        # reduce self elapse time below elapse argument
+        discard,keep = self.split(self.start() + self.elapse() - elapse)
+
+        # return "appended" and "reduced" self.
+        return (discard,keep)
 
 
 #### functions

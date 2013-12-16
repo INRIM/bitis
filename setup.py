@@ -50,14 +50,14 @@ AUTHOR_EMAIL = re.search('.*?<(.*?)>',bitis.__author__).group(1)
 
 # do setup
 setup (
-  name = 'Bitis',
+  name = 'bitis',
   version = bitis.__version__,
   author = AUTHOR,
   author_email = AUTHOR_EMAIL,
   maintainer = AUTHOR,
   maintainer_email = AUTHOR_EMAIL,
-  url = 'http://Bitis.inrim.it',
-#  download_url = 'http://Bitis.inrim.it/dist/Bitis-' + VERSION + '.tar.gz',
+  url = 'http://bitis.inrim.it',
+#  download_url = 'http://bitis.inrim.it/dist/bitis-' + VERSION + '.tar.gz',
   license = 'http://www.gnu.org/licenses/gpl.txt',
   platforms = ['Linux'],
   description =  "Bitis is a processing library for binary timed signals",
@@ -69,7 +69,7 @@ setup (
   to its sampling period.
   """,
   classifiers = filter(None, classifiers.split("\n")),
-  py_modules = ['Bitis'])
+  py_modules = ['bitis'])
 
 # cleanup
 if os.access('MANIFEST',os.F_OK):
