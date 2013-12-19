@@ -777,6 +777,17 @@ def serial_tx(chars,times,char_bits=8,parity='off',stop_bits=2,baud=50,
     return sline
 
 
+# serial rx character status bits
+PARITY_ERROR = 0x01
+STOP_ERROR = 0x02
+# serial rx, End Of Signal error codes:
+# EOS while start bit, char bits, parity bit, stop bits.
+EOS_START = 0x10
+EOS_CHAR = 0x20
+EOS_PARITY = 0x30
+EOS_STOP = 0x40
+
+
 def serial_rx(sline,char_bits=8,parity='off',stop_bits=2,baud=50):
     """ Simulate a serial asynchronous receiving interface. Return
     a list of the received characters, a list of their start times and
@@ -804,6 +815,9 @@ def serial_rx(sline,char_bits=8,parity='off',stop_bits=2,baud=50):
     # consume all serial line pulses
     while True:
 
+        # presume OK for rx char status
+        status.append(0)
+
         # search the first signal edge after start, stop at the last edge.
         while start > sline.times[i]:
             i += 1
@@ -824,6 +838,9 @@ def serial_rx(sline,char_bits=8,parity='off',stop_bits=2,baud=50):
             i += 1
             # if start bit sampling  goes beyond the last edge, terminate.
             if i > imax:
+                status[-1] |= EOS_START
+                chars.append(chr(0))
+                timings.append(start)
                 return chars, timings, status
 
         # detect line level at sampling time. If it is 0,
@@ -845,7 +862,7 @@ def serial_rx(sline,char_bits=8,parity='off',stop_bits=2,baud=50):
                         char |= char_mask[char_bits]
                     chars.append(chr(char))
                     timings.append(start)
-                    status.append(3)
+                    status[-1] |= EOS_CHAR
                     return chars, timings, status
             char >>= 1
             if i & 1 ^ sline.slevel:
@@ -867,18 +884,29 @@ def serial_rx(sline,char_bits=8,parity='off',stop_bits=2,baud=50):
                 i += 1
                 # if parity bit sampling  goes beyond the last edge, terminate.
                 if i > imax:
-                    status.append(4)
+                    status[-1] |= EOS_PARITY
                     return chars, timings, status
             parity_bit = i & 1 ^ sline.slevel
 
             # check
-            if parity_bit == ones:
-                status.append(0)
-            else:
-                status.append(1)
+            if parity_bit != ones:
+                status[-1] |= PARITY_ERROR
 
-        # consider stop bits: move start of next char at stop bits end.
-        start = sample_time + (stop_bits + 0.5) * bit_time
+        # sample stop bit(s)
+        for s in range(stop_bits):
+            sample_time += bit_time
+            while sample_time > sline.times[i]:
+                i += 1
+                # if character sampling goes beyond the last edge, set
+                # remaining char bit to zero and terminate.
+                if i > imax:
+                    status[-1] |= EOS_STOP
+                    return chars, timings, status
+            if not i & 1 ^ sline.slevel:
+                status[-1] |= STOP_ERROR
+
+        # move start of next char at stop bits end.
+        start = sample_time + 0.5 * bit_time
 
     return chars, timings, status
 
