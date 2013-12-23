@@ -171,7 +171,7 @@ class Signal:
             return other
 
         # check for non overlap
-        assert self.times[-1] <= other.times[0], \
+        assert self.times[-2] <= other.times[1], \
                 'self and other overlaps in time.\n' \
                 + 'self end = ' + str(self.end()) \
                 + ' , other start = ' + str(other.start())
@@ -565,6 +565,12 @@ class Signal:
         if step_num == None:
             tmax = self.elapse() + other.elapse()
             step_num = int(tmax / step_size)
+        # if step_num is defined, check for sig_a.start() always < sig_b.end().
+        # If not, ruduce step_num to hold previuous equation.
+        else:
+            allowed_step_num = int((other.end() - sig_a.start()) / step_size)
+            if step_num > allowed_step_num:
+                step_num = allowed_step_num
 
         # compute correlation step by step
         corr = []
