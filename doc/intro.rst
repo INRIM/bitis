@@ -25,7 +25,7 @@ some way" and understand what can be a decent set of objects/methods/functions.
 
 BITIS is released under the GNU General Public License.
 
-At present, version 0.6.0, BITIS is in alpha status. Any debugging aid is
+At present, version 0.7.0, BITIS is in alpha status. Any debugging aid is
 welcome.
 
 For any question, suggestion, contribution contact the author Fabrizio Pollastri <f.pollastri_a_t_inrim.it>.

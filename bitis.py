@@ -37,7 +37,7 @@ import sys              # sys constants
 
 # define global variables
 
-__version__ = '0.6.0'
+__version__ = '0.7.0'
 __author__ = 'Fabrizio Pollastri <f.pollastri@inrim.it>'
 
 
@@ -103,9 +103,9 @@ class Signal:
 
 
     def clone_into(self,other):
-        """ Full copy of signal object into other. Each other attribute is
+        """ Full copy of signal object into *other*. Each other attribute is
         assigned a deep copy of the value of the same attribute in signal
-        object."""
+        object. Return *other*. """
 
         other.slevel = self.slevel
         other.times = self.times[:]
@@ -538,7 +538,7 @@ class Signal:
 
 
     def correlation(self,other,normalize=False,step_size=1,step_left=None,
-            step_right=None:
+            step_right=None):
         """ Return the correlation function of two given signal objects:
         *self* and *other*. Output can be absolute: integral of xor between
         shifted *self* and *other* signals (*normalize=False*). Output
@@ -547,10 +547,11 @@ class Signal:
         The correlation function is returned as two lists: the correlation
         values and the correlation time shifts. The origin of time shift
         is set when the shifted start time of *self* is equal to the start
-        time of *other*. If *step_start* is defined, reduce *self* shift by
-        *step_start* amount, shifting self right by this amount. If *step_num*
-        is defined, says for how many steps the correlation is to be computed.
-        """
+        time of *other*. *step_left* is the number of steps where to compute
+        the correlation function on the left of origin. If it is undefined,
+        the number of steps is set automatically to the maximum extent giving
+        a non empty intersection among *self* and *other*. The same holds for
+        *step_right*. """
         #if *mask* is defined, and *mask* with *self* at each correlation shift.
 
         # simplify variables access

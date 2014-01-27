@@ -1,6 +1,22 @@
 Changes
 *******
 
+Release 0.7.0 (released 27-Jan-2014)
+====================================
+
+Features added
+--------------
+
+* Add buf_step to method stream.
+* Add return self to in place working method clone_into.
+
+Incompatible changes
+--------------------
+
+* Change step_start, step_num with step_left, step_right in method correlation.
+* Change correlation unittest from a graphic one to procedural only.
+
+
 Release 0.6.0 (released 16-Dec-2013)
 ===================================
 
