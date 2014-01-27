@@ -294,42 +294,20 @@ class TestBitis(unittest.TestCase):
     def test_correlation(self):
         """ Test correlation function of two signals (*self* and *other*). """
 
-        # make repeatable random sequences
-        random.seed(1)
+        # create test signals
+        in_a = bt.Signal([-2,-1,1,2,7,12])
+        in_b = bt.Signal([-2,0,3,5,8,12])
+        expected_corr =  [  1,  2,  2,  2, 2, 2, 2, 3, 4, 5, 6, 6, 6]
+        expected_times = [-13,-12,-11,-10,-9,-8,-7,-6,-5,-4,-3,-2,-1]
+        expected_corr +=  [9,10,9,7,3,3,3,3,2,1, 2, 1, 1, 1]
+        expected_times += [0, 1,2,3,4,5,6,7,8,9,10,11,12,13]
 
-        # iterate test on several random signals
-        for t in range(1):
+        # do correlation
+        corr, times = in_a.correlation(in_b)
 
-            # create random signals
-            in_a = bt.noise(0,8,period_mean=0.2,width_mean=3)
-            in_b = bt.noise(0,7,period_mean=0.3,width_mean=2)
-
-            # test correlation
-            expected = in_a.correlation(in_b)
-
-            # plot correlation result
-            pl.figure(1)
-            pl.suptitle('BITIS: correlation of two signals.')
-            pl.subplot(3,1,1)
-            pl.xlim(-2,12)
-            pl.ylim(-0.1,1.1)
-            pl.ylabel('signal a')
-            pl.xlabel('time')
-            in_a.plot() 
-            pl.subplot(3,1,2)
-            pl.xlim(-2,12)
-            pl.ylim(-0.1,1.1)
-            pl.ylabel('signal b')
-            pl.xlabel('time')
-            in_b.plot() 
-            pl.subplot(3,1,3)
-            pl.grid()
-            corr, times = expected
-            pl.plot(times,corr)
-            pl.ylabel('correlation a b')
-            pl.xlabel('signal a shift')
-            pl.subplots_adjust(hspace=0.4)
-            pl.show()
+        # test correlation
+        self.assertEqual(expected_corr,corr)
+        self.assertEqual(expected_times,times)
 
 
     def test_pwm_codec(self):
@@ -424,7 +402,7 @@ class TestBitis(unittest.TestCase):
         # split original several times, pass first splited part to a stream
         # signal, append stream excess to an accumulator signal.
         # At each step, check if original is equal to part b + stream + acc.
-        start = 0.
+        start = original.start()
         tosplit = original
         for i in range(10):
             split = random.uniform(start,200.)

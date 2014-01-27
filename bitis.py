@@ -96,14 +96,16 @@ class Signal:
 
 
     def clone(self):
-        """ Return a copy with the same attributes/values of the 
-        signal object. """
+        """ Return a deep copy with the same attributes/values of signal
+        object. """
 
         return copy.deepcopy(self)
 
 
     def clone_into(self,other):
-        """ Full copy of self into other. """
+        """ Full copy of signal object into other. Each other attribute is
+        assigned a deep copy of the value of the same attribute in signal
+        object."""
 
         other.slevel = self.slevel
         other.times = self.times[:]
@@ -134,6 +136,8 @@ class Signal:
 
         for i in range(len(self)):
                 self.times[i] += offset
+
+        return self
 
 
     def reverse(self):
@@ -533,8 +537,8 @@ class Signal:
         return integral
 
 
-    def correlation(self,other,normalize=False,step_size=1,step_num=None,
-            step_start=None):
+    def correlation(self,other,normalize=False,step_size=1,step_left=None,
+            step_right=None:
         """ Return the correlation function of two given signal objects:
         *self* and *other*. Output can be absolute: integral of xor between
         shifted *self* and *other* signals (*normalize=False*). Output
@@ -547,6 +551,7 @@ class Signal:
         *step_start* amount, shifting self right by this amount. If *step_num*
         is defined, says for how many steps the correlation is to be computed.
         """
+        #if *mask* is defined, and *mask* with *self* at each correlation shift.
 
         # simplify variables access
         sig_a = self.clone()
@@ -555,30 +560,45 @@ class Signal:
         # time and slide signal A. If step start is not defined, shift A to
         # put A end on B start. If step start is defined, reduce A shift by
         # step_start amount, shifting A right by this amount.
-        shift = other.times[0] - self.times[-1]
-        if step_start:
-            shift = shift + step_start
-        sig_a.shift(shift)
 
-        # if step num is undefined, default to correlate over all possible
-        # self and other intersections.
-        if step_num == None:
-            tmax = self.elapse() + other.elapse()
-            step_num = int(tmax / step_size)
-        # if step_num is defined, check for sig_a.start() always < sig_b.end().
-        # If not, ruduce step_num to hold previuous equation.
-        else:
-            allowed_step_num = int((other.end() - sig_a.start()) / step_size)
-            if step_num > allowed_step_num:
-                step_num = allowed_step_num
+        # number of slide steps of A toward left
+        left_steps = self.elapse() / step_size
+        # since A xor B needs a non null intersection, if step_size is an
+        # exact multple of A elapse, go back one step.
+        if left_steps > 1. and left_steps % 1. == 0:
+            left_steps -= 1
+
+        # if step_left is defined, use it but limit it to left_steps boundary.
+        if step_left and step_left <= left_steps:
+            left_steps = step_left
+
+        # step_lefts need to be integer
+        left_steps = int(left_steps)
+
+        # number of slide steps of A toward right
+        right_steps = other.elapse() / step_size
+        # since A xor B needs a non null intersection, if step_size is an
+        # exact multple of B elapse, go back one step.
+        if right_steps > 1. and right_steps % 1. == 0:
+            right_steps -= 1
+
+        # if step_right is defined, use it but limit it to right_steps boundary.
+        if step_right and step_right <= right_steps:
+            right_steps = step_right
+
+        # step_right need to be integer
+        right_steps = int(right_steps)
+
+        # shift that align A start on B start
+        shift = other.start() - self.start()
+
+        # apply shift to slide A to left most step position
+        sig_a.shift(shift - left_steps * step_size)
 
         # compute correlation step by step
         corr = []
         shifts = []
-        for step in range(1,step_num + 1):
-
-            # shift right A by step units
-            sig_a.shift(step_size)
+        for step in range(-left_steps,right_steps+1):
 
             # correlation among signal A and B
             if normalize:
@@ -587,6 +607,9 @@ class Signal:
                 corr += [(sig_a ^ other).integral(0,normalize=False)]
 
             shifts += [step * step_size + shift]
+
+            # shift right A by step units
+            sig_a.shift(step_size)
 
         return corr, shifts
 
@@ -617,21 +640,25 @@ class Signal:
             plot(self.times,levels,**kargs)
 
 
-    def stream(self,other,elapse):
+    def stream(self,other,elapse,buf_step=1.):
         """ Append *other* signal to *self* signal. If self signal elapse time
         becomes greater than *elapse*, delete from the older part of self until
         its elapse time is less or equal than *elapse*. """
 
         self.append(other)
 
-        # if self elapse below allowed max, return "appendend" self.
+        # if self elapse below allowed max, return an empty discarded signal
+        # and the "appendend" self.
         if self.elapse() <= elapse:
             return (Signal(),self)
 
-        # reduce self elapse time below elapse argument
-        discard,keep = self.split(self.start() + self.elapse() - elapse)
+        # compute shift to be applied, if any.
+        shift = (int((self.elapse() - elapse) / buf_step) + 1) * buf_step
 
-        # return "appended" and "reduced" self.
+        # reduce self elapse time below elapse argument
+        discard, keep = self.split(self.start() + shift)
+
+        # return discarded part (before split) and kept part (after split).
         return (discard,keep)
 
 
@@ -986,7 +1013,7 @@ def square(origin,end,period,width,active=1):
     trailing edge. *end* is the signal end time. *period* is the pulse
     period. *width* is the pulse width at active level. """
 
-    # allocate noise signal
+    # allocate signal
     square = Signal()
 
     # set start level according to active level
