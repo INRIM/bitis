@@ -318,23 +318,23 @@ class Signal:
 
         # find index of first change after start
         
-        for ia_start in range(len(self)):
-            if self.times[ia_start] > start:
+        for ia_start in range(1,len(self)):
+            if self.times[ia_start] >= start:
                 break
 
-        for ib_start in range(len(other)):
-            if other.times[ib_start] > start:
+        for ib_start in range(1,len(other)):
+            if other.times[ib_start] >= start:
                 break
 
         # find index of last change before end
 
-        for ia_end in range(-1,-len(self)-1,-1):
-            if self.times[ia_end] < end:
+        for ia_end in range(-2,-len(self)-1,-1):
+            if self.times[ia_end] <= end:
                 ia_end += len(self)
                 break
 
-        for ib_end in range(-1,-len(other)-1,-1):
-            if other.times[ib_end] < end:
+        for ib_end in range(-2,-len(other)-1,-1):
+            if other.times[ib_end] <= end:
                 ib_end += len(other)
                 break
 

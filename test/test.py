@@ -126,14 +126,14 @@ class TestBitis(unittest.TestCase):
         self.assertEqual((1,6,1,3,0,1,3,0),testing)
 
         testing = self.base._intersect(self.shift2)
-        self.assertEqual((2,6,2,3,1,1,2,0),testing)
+        self.assertEqual((2,6,1,3,0,1,3,0),testing)
 
         testing = self.base._intersect(self.shift3)
-        self.assertEqual((3,6,3,3,0,1,1,0),testing)
+        self.assertEqual((3,6,2,3,1,1,2,0),testing)
 
         testing = self.base._intersect(self.shift4)
-        self.assertEqual((4,6,4,3,1,1,0,0),testing)
-
+        self.assertEqual((4,6,3,3,0,1,1,0),testing)
+ 
         testing = self.base._intersect(self.shift5)
         self.assertEqual((5,6,4,3,1,1,0,0),testing)
 
@@ -165,15 +165,15 @@ class TestBitis(unittest.TestCase):
         self.assertEqual(expected,testing)
 
         testing = self.base & self.shift2
-        expected = bt.Signal([2,4,5,6],slevel=0,tscale=1)
+        expected = bt.Signal([2,4,5,6,6],slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
         testing = self.base & self.shift3
-        expected = bt.Signal([3,5,6],slevel=0,tscale=1)
+        expected = bt.Signal([3,5,6,6],slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
         testing = self.base & self.shift4
-        expected = bt.Signal([4,6],slevel=0,tscale=1)
+        expected = bt.Signal([4,6,6],slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
         testing = self.base & self.shift5
@@ -200,15 +200,15 @@ class TestBitis(unittest.TestCase):
         self.assertEqual(expected,testing)
 
         testing = self.base | self.shift2
-        expected = bt.Signal([2,3,4,6],slevel=1,tscale=1)
+        expected = bt.Signal([2,2,3,4,6],slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
         testing = self.base | self.shift3
-        expected = bt.Signal([3,4,6],slevel=0,tscale=1)
+        expected = bt.Signal([3,3,4,6],slevel=1,tscale=1)
         self.assertEqual(expected,testing)
 
         testing = self.base | self.shift4
-        expected = bt.Signal([4,6],slevel=1,tscale=1)
+        expected = bt.Signal([4,4,6],slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
         testing = self.base | self.shift5
@@ -228,15 +228,15 @@ class TestBitis(unittest.TestCase):
         self.assertEqual(expected,testing)
 
         testing = self.base ^ self.shift2
-        expected = bt.Signal([2,3,5,6],slevel=1,tscale=1)
+        expected = bt.Signal([2,2,3,5,6],slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
         testing = self.base ^ self.shift3
-        expected = bt.Signal([3,4,5,6],slevel=0,tscale=1)
+        expected = bt.Signal([3,3,4,5,6],slevel=1,tscale=1)
         self.assertEqual(expected,testing)
 
         testing = self.base ^ self.shift4
-        expected = bt.Signal([4,6],slevel=1,tscale=1)
+        expected = bt.Signal([4,4,6],slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
         testing = self.base ^ self.shift5
