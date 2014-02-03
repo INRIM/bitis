@@ -1,6 +1,20 @@
 Changes
 *******
 
+Release 0.7.1 (released 3-Feb-2014)
+===================================
+
+Bugs fixed
+----------
+
+* Fix inequality test: missing __ne__ method.
+
+Internals
+---------
+
+* Optimized "and" and "or" operator for constant signals.
+
+
 Release 0.7.0 (released 27-Jan-2014)
 ====================================
 
