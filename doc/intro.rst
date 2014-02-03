@@ -6,7 +6,7 @@ Introduction
 ============
 
 **Bitis** is a python module that implements a full set of operators over
-binary signals represented as BTS format. The `BTS format <./btsformat.html>`_
+binary signals represented with BTS format. The `BTS format <./btsformat.html>`_
 is a computer
 memory representation of a binary signal that can have a very compact
 memory footprint when the signal has a low rate of change with respect

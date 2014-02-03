@@ -282,31 +282,33 @@ class Signal:
 
     def __eq__(self,other):
         """ Equality test between two signals. Return *True* if the
-        two signals are equal. Otherwise, print the two signals and
-        return *False*. Can be used as the equality or inequality
-        operator as in the following example (signal a,b are instances
-        of the Signal class)::
+        two signals are equal. Otherwise, return *False*. Can be used
+        as the equality operator as in the following example (signal
+        a,b are instances of the Signal class)::
 
             if signal_a == signal_b:
-                print 'signal a and b are equal'
+                print 'signal a and b are equal' """
+
+        return  self.__dict__ == other.__dict__
+
+
+    def __ne__(self,other):
+        """ Inequality test between two signals. Return *True* if the
+        two signals are not equal. Otherwise, return *False*. Can be used
+        as the inequality operator as in the following example (signal a,b
+        are instances of the Signal class)::
+
             if signal_a != signal_b:
                 print 'signal a and b are different'"""
 
-        if self.__dict__ == other.__dict__:
-            return True
-        else:
-            try:
-                print '1 ****'
-                print self
-                print '2 ****'
-                print other
-            except:
-                pass
-            return False
+        return self.__dict__ != other.__dict__
 
 
     def _intersect(self,other):
-        """ """
+        """ Compute the time intersection of two signals, if exists. 
+        Return the start and end time of intersection, for each signal,
+        return the indexes of the first and last signal changes inside
+        the intersection. """
 
         # start and end times of signal A and B intersection
         start = max(self.times[0],other.times[0])
@@ -354,9 +356,6 @@ class Signal:
         if not self or not other:
             return None
 
-        # create output signal object
-        out_sig = Signal()
-
         # compute A and B time intersection paramenters.
         # If no intersection, return none.
         intersection = self._intersect(other)
@@ -364,6 +363,20 @@ class Signal:
             return None
         start,end,ia_start,ia_end,slevel_a,ib_start,ib_end,slevel_b = \
             intersection
+
+        # optimize result computation when both self and other are constant
+        # if self and other are constant, return a constant signal.
+        if len(self) < 3 and len(other) < 3:
+            return Signal([start,end],slevel=operator(self.slevel,other.slevel))
+        
+        # optimize result computation when self or other is constant
+        if len(self) < 3 and not (operator(1,0) ^ self.slevel):
+            return Signal([start,end],slevel=self.slevel)
+        if len(other) < 3 and not (operator(1,0) ^ other.slevel):
+            return Signal([start,end],slevel=other.slevel)
+
+        # create output signal object
+        out_sig = Signal()
 
         # initial status vars of a two input logic: inputs a and b, output.
         in_a = slevel_a

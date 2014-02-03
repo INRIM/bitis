@@ -63,7 +63,7 @@ setup (
   description =  "Bitis is a processing library for binary timed signals",
   long_description = """
   Bitis is a python module that implements a full set of operators over
-  binary signals represented as BTS format. The BTS format is a computer
+  binary signals represented with BTS format. The BTS format is a computer
   memory representation of a binary signal that can have a very compact
   memory footprint when the signal has a low rate of change with respect
   to its sampling period.
