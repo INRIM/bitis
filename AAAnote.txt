@@ -1,0 +1,57 @@
+NOTE
+
+.note FP20140827
+
+Release build sequence
+
+0. Finish all changes.
+1. Run: test/test.py                 # if OK go on, else work better ...
+2. Run: python setup.py sdist
+3. Run: sudo python setup.py install
+4. Run: python setup.py build_sphinx
+5. Run: git commit -a                # copy changelog.rst into commit message
+6. Run: git tag -a x.y.x             # x.y.z is the version nember
+7. Run: python setup.py register     # upload program to pypi
+8. Run: python setup.py upload_doc   # upload documentation
+9. Run: ./website_publish.sh	     # upload doc to bitis.inrim.it
+
+
+.note FP20131118
+
+1. _xor_ uses comparison between times. If float, exact equality may be missed.
+2. bin2pwm: to have int or float times set origin to int or float.
+
+
+TODO
+
+.note FP20140203
+
+About stream
+-new Stream class
+-static vars: main stream list, triggered update,
+  to_be_updated = {}, add here a stream when another stream on which it depends
+  is changed, i.e. is called a write method on it.
+  -each stream must have a list/dict of the depending streams
+  -each stream must have a list/dict of the controlling streams
+  -each stream must have an update method recomputing it from the
+    controlling streams
+  -present value
+  -stream can have different depth (buffer size)
+  -buffer size given as time elapse, alternative: number of signal changes
+  -special streams: connector, connect a stream out (a tap 
+    with a selectable delay) to the input of another stream.
+  -main update method (clock), calls all stream update methods, first it
+    sets the given end time of each controlling stream then it calls update
+    methods of each depending stream.
+
+  -each stream
+    -has the end time = now_time when clocked
+    -has min time = start time, the stream buffer threshold time
+    -has buffer step, the buffer reduction step when min time is exceeded
+    -can be clocked, different steam can have different clocks
+    -has an in buffer, where changes are written before to be clocked
+    -has an update method, recompute outputs from current inputs
+  -first clock stream then update them
+  -stream instances can be grouped
+  -clock, update can applied on a group basis.
+  
