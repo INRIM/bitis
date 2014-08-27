@@ -1,6 +1,47 @@
 Changes
 *******
 
+Release 0.8.0 (released 26-Aug-2014)
+====================================
+
+Features added
+--------------
+
+* New method chop: divide a signal in a sequence of contiguous signal of
+  given period.
+* Method correlation now has a mask argument: if mask signal is not none, the
+  correlation is computed only where mask=1.
+* Method join now has an inplace arguments. When true, no new signal is
+  generated for the join result. Self signal is used instead.
+* Method pwm2bin now can convert by synchronouos symbols correlation.
+* Method split now has an inplace argument. When true, no new signal is
+  generated for the newer signal part. Self signal is used instead.
+* Method split, when splitting on a signal change time, now assigns the change
+  to the start of the newer signal part.
+
+Changes
+-------
+
+* Methods start, end, elapsed now return None when the signal time changes
+  sequence is empty.
+* Method bin2pwm now signal start=origin and signal end is not extended.
+
+Bugs fixed
+----------
+
+* Fix method correlation stepping limits for defaults.
+* Fix method split splitting on a change time: now correct end of older part
+  and correct start of newer part are generated.
+  start of newer were generated.
+* Fix method serial_rx bit time computation: use floats.
+
+Internals
+---------
+
+* Added test for method chop.
+* Added test for new the convertion mode (sync symb corr) of method pwm2bin.
+
+
 Release 0.7.1 (released 3-Feb-2014)
 ===================================
 
@@ -32,7 +73,7 @@ Incompatible changes
 
 
 Release 0.6.0 (released 16-Dec-2013)
-===================================
+====================================
 
 Features added
 --------------

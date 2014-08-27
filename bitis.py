@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#.!/usr/bin/python
 # .+
 # .context    : Binary Timed Signal Processing Processing Library
 # .title      : Bitis main module
@@ -37,7 +37,7 @@ import sys              # sys constants
 
 # define global variables
 
-__version__ = '0.7.1'
+__version__ = '0.8.0'
 __author__ = 'Fabrizio Pollastri <f.pollastri@inrim.it>'
 
 
@@ -113,21 +113,33 @@ class Signal:
 
 
     def start(self):
-        """ Ruturn the signal start time. """
+        """ Ruturn the signal start time. Return none, if the signal change
+        times sequence is empty. """ 
 
-        return self.times[0]
+        if self.times:
+            return self.times[0]
+        else:
+            return None
 
 
     def end(self):
-        """ Ruturn the signal end time. """
+        """ Ruturn the signal end time. Return none, if the signal change
+        times sequence is empty. """ 
 
-        return self.times[-1]
+        if self.times: 
+            return self.times[-1]
+        else:
+            return None
 
 
     def elapse(self):
-        """ Ruturn the signal elapse time: end time - start time. """
+        """ Ruturn the signal elapse time: end time - start time.
+        Return none, if the signal change times sequence is empty. """
 
-        return self.times[-1] - self.times[0]
+        if self.times: 
+            return self.times[-1] - self.times[0]
+        else:
+            return None
 
 
     def shift(self,offset):
@@ -195,11 +207,15 @@ class Signal:
         return self
 
 
-    def split(self,split):
+    def split(self,split,inplace=False):
         """ Split the signal into two signals. *split* is the split time.
         Return two signal objects. The first is the part of the original
         signal before the split time, it ends at the split time. The second is
         the part after the split time, it starts at the split time.
+        If *split* is equal to a signal change time, the change is put into
+        the second part signal.
+        If *inplace* is false, the second signal is a new signal object.
+        If *inplace* is true, the second signal is put into the *self* signal. 
         If *split* is not inside the original signal domain, no split
         occours, None is returned. """
 
@@ -209,7 +225,7 @@ class Signal:
 
         # search split point
         for i in range(len(self)):
-            if split < self.times[i]:
+            if split <= self.times[i]:
                 break
 
         # older signal part: pre split time. 
@@ -219,41 +235,98 @@ class Signal:
             older.times.append(split)
 
         # newer signal part: post split time.
-        newer = Signal(self.times[i:],slevel=(i-1) & 1 ^ self.slevel,
+        if inplace:
+            self.times = self.times[i:]
+            self.slevel = (i-1) & 1 ^ self.slevel
+            newer = self
+        else:
+            newer = Signal(self.times[i:],slevel=(i-1) & 1 ^ self.slevel,
                 tscale=self.tscale)
-        if split != newer.times[0]:
-            newer.times.insert(0,split)
+        newer.times.insert(0,split)
 
         return older, newer
 
 
-    def join(self,other):
-        """ Join two signals (*self* and *other*) in one signal. If 
-        there is a time gap between the joining signals, fill it.
-        Return a signal object with the join result. Signals
-        with overlapping domains cannot be joined (join returns None).
-        Signals with different levels at one end and other start cannot be
-        joined (join returns None). """
+    def join(self,other,inplace=False):
+        """ Join two signals (*self* and *other*) in one signal. 
+        End time of *self* must be less or equal to start time of *other*.
+        If there is a time gap between the joining signals, fill it.
+        Return a signal object with the join result. If *inplace* is false,
+        a new signal object is returned. If *inplace* is true, the join
+        result is put into *self* and *self* is returned. Signals with
+        different levels at *self* end and at *other* start cannot be joined
+        (join returns None). """
 
-        # if joining signals overlap, return None.
-        if self.times[0] < other.times[0] and other.times[0] < self.times[-1]:
+        # if self is not before other, return None.
+        if self.times[-1] > other.times[0]:
             return None
-        if self.times[0] > other.times[-1] and other.times[-1] < self.times[-1]:
+
+        # if end level of self is equal to start level of other, return None.
+        if len(self) & 1 ^ self.slevel != other.slevel:
             return None
 
         # join
-        if self.times[0] < other.times[0]:
-            if len(self) & 1 ^ self.slevel != other.slevel:
-                return None
-            signal = Signal(self.times[:-1]+other.times[1:],slevel=self.slevel)
+        if inplace:
+            self.times = self.times[:-1] + other.times[1:]
+            return self
         else:
-            if len(other) & 1 ^ other.slevel != self.slevel:
-                return None
-            signal = Signal(other.times[:-1]+self.times[1:],slevel=self.slevel)
-
-        return signal
+            return Signal(self.times[:-1]+other.times[1:],slevel=self.slevel)
 
 
+    def chop(self,period,origin=None,max_chops=1000):
+        """ Divide the signal into several time contiguous signals with the
+        same elapse time equal to *period*. The dividing times sequence
+        starts at *origin* and has an element every *period* time, except for
+        the last element. It has end time = period * max_chops, if max_chops
+        is reached. Otherwise, it has the end time of the chopped signal.
+        Return a list with the chopped signals.
+        If *origin* is before the signal start, it is moved forward by an
+        integer times of period, until it falls into the signal domain.
+        If *origin* is none, it is set to self start time by default.
+        If *origin* is after the signal end, no chop occours,
+        an empty list is returned. """
+
+        # if not defined, set origin default.
+        if not origin:
+              origin = self.times[0]
+
+        # if origin after signal end, return an empty list.
+        if self.times[-1] <= origin:
+            return []
+
+        # preserve original signal from internal manipulations
+        signal = self.clone()
+
+        # if origin before signal domain, set it to the first split in
+        # signal domain
+        if origin <= self.times[0]:
+            #split = origin + (int((self.times[0]-origin) / period) + 1)*period
+            split =  self.times[0] + period - (self.times[0] - origin) % period
+        # if origin inside signal domain, discard signal part before origin.
+        else:
+            discard = signal.split(origin,inplace=True)
+            split = origin + period
+
+        # init loop vars
+        chops = []
+
+        # for each chop time, chop signal until max_chops is reached or the
+        # signal end is reached.
+        for c in range(1,max_chops):
+            chop = signal.split(split,inplace=True)
+            if chop:
+                chops.append(chop[0])
+                split += period
+            else:
+                break
+
+        # if last split beyond signal end, get the residual part. 
+        if split >= self.times[-1]:
+            chops.append(signal)
+
+        return chops
+
+       
     def jitter(self,stddev=0):
         """ Add a gaussian jitter to the change times of *self* signal object
         with the given standard deviation *stddev* and zero mean.
@@ -262,7 +335,6 @@ class Signal:
         # add jitter to signal change times
         for i in range(1,len(self)-1):
             new_time = self.times[i] + random.gauss(0.0,stddev)
-           # print self.times[i],new_time,new_time - self.times[i]
             # if current edge has room to be moved forward or back, add jitter.
             if self.times[i - 1] < new_time and new_time < self.times[i + 1]:
                 self.times[i] = new_time
@@ -550,13 +622,15 @@ class Signal:
         return integral
 
 
-    def correlation(self,other,normalize=False,step_size=1,step_left=None,
-            step_right=None):
+    def correlation(self,other,mask=None,normalize=False,step_size=1,
+            step_left=None,step_right=None):
         """ Return the correlation function of two given signal objects:
-        *self* and *other*. Output can be absolute: integral of xor between
-        shifted *self* and *other* signals (*normalize=False*). Output
-        can be normalized (*normalize=True*) in the range -1 +1.
-        The correlation function time scale is set by *step_size*.
+        *self* and *other*. If *mask* is defined as signal object, the
+        correlation is computed only where mask=1. Output can be absolute:
+        integral of xor between shifted *self* and *other* signals
+        (*normalize=False*). Output can be normalized (*normalize=True*) in
+        the range -1 +1.  The correlation function time scale is set by
+        *step_size*.
         The correlation function is returned as two lists: the correlation
         values and the correlation time shifts. The origin of time shift
         is set when the shifted start time of *self* is equal to the start
@@ -565,15 +639,9 @@ class Signal:
         the number of steps is set automatically to the maximum extent giving
         a non empty intersection among *self* and *other*. The same holds for
         *step_right*. """
-        #if *mask* is defined, and *mask* with *self* at each correlation shift.
 
         # simplify variables access
         sig_a = self.clone()
-
-        # take the first edge of signal B as origin. Keep signal B fixed in
-        # time and slide signal A. If step start is not defined, shift A to
-        # put A end on B start. If step start is defined, reduce A shift by
-        # step_start amount, shifting A right by this amount.
 
         # number of slide steps of A toward left
         left_steps = self.elapse() / step_size
@@ -583,7 +651,7 @@ class Signal:
             left_steps -= 1
 
         # if step_left is defined, use it but limit it to left_steps boundary.
-        if step_left and step_left <= left_steps:
+        if step_left != None and step_left <= left_steps:
             left_steps = step_left
 
         # step_lefts need to be integer
@@ -597,7 +665,7 @@ class Signal:
             right_steps -= 1
 
         # if step_right is defined, use it but limit it to right_steps boundary.
-        if step_right and step_right <= right_steps:
+        if step_right != None and step_right <= right_steps:
             right_steps = step_right
 
         # step_right need to be integer
@@ -606,7 +674,7 @@ class Signal:
         # shift that align A start on B start
         shift = other.start() - self.start()
 
-        # apply shift to slide A to left most step position
+        # apply shift to slide A to the leftmost position
         sig_a.shift(shift - left_steps * step_size)
 
         # compute correlation step by step
@@ -615,10 +683,14 @@ class Signal:
         for step in range(-left_steps,right_steps+1):
 
             # correlation among signal A and B
-            if normalize:
-                corr += [(sig_a ^ other).integral(0,normalize) * 2 - 1]
+            if mask:
+                xor = (sig_a ^ other) & mask
             else:
-                corr += [(sig_a ^ other).integral(0,normalize=False)]
+                xor = sig_a ^ other
+            if normalize:
+                corr += [xor.integral(0,normalize) * 2 - 1]
+            else:
+                corr += [xor.integral(0,normalize=False)]
 
             shifts += [step * step_size + shift]
 
@@ -697,7 +769,7 @@ def bin2pwm(bincode,period,elapse_0,elapse_1,active=1,origin=0,tscale=1.):
     pwm = Signal(slevel=~active&1,tscale=tscale)
 
     # set conventional start
-    pwm.times = [origin - period / 100.]
+    pwm.times = [origin]
 
     # convert a tuple at a time
     for bit_num, code in bincode:
@@ -718,33 +790,90 @@ def bin2pwm(bincode,period,elapse_0,elapse_1,active=1,origin=0,tscale=1.):
         origin = end
 
     # end signal at the end of last period
-    pwm.times.append(end + 1)
+    pwm.times.append(end)
 
     return pwm
 
 
-def pwm2bin(pwm,elapse_0,elapse_1):
+def pwm2bin(pwm,elapse_0,elapse_1,active=1,origin=0,period=None,threshold=0.2):
     """ Convert a pulse width modulation signal in BTS format to binary code.
     Return a tuple: see *bincode* in **bin2pwm**. *pwm* is the signal to
-    decode. For the other arguments see **bin2pwm**. Conversion is done by
-    testing only the active pulse level elapse against a threshold computed
-    as mean of elapse_0 and elapse_1. No check is done on pulse period. """
+    decode. For the other arguments see **bin2pwm**. If *period* is not
+    defined, conversion is done by testing only the active pulse level elapse
+    against a threshold computed as mean of elapse_0 and elapse_1. No check is
+    done on pulse period and decoding consider every pulse. If period is
+    set to the modulation pulse period, conversion is done by synchronous
+    symbols correlation. The signal is chopped with the given *period*,
+    starting from *origin*, start of symbol periods, until signal end. Each
+    signal chop, corresponding to one symbol time, is correlated with both
+    models of 0 and 1 pulses. The better value above *threshold* is taken as
+    result. """
 
-    code = 0
-    threshold = (elapse_0 + elapse_1) / 2.
-    one_is_above = elapse_0 < elapse_1
-    start_off = (len(pwm) & 1) + 3
+    ## if period, convert by correlation
+    if period:
 
-    for i in range(len(pwm)-start_off,-1,-2):
-        code <<= 1
-        if pwm.times[i + 1] - pwm.times[i] > threshold:
-            if one_is_above:
-                code |= 1
+        # if at least not one pulse, return zero code
+        if len(pwm) <= 3:
+            return (0,0), 0
+
+        # build pulse model and mask
+        margin = 0.2 * min(elapse_0,elapse_1)
+        last = max(elapse_0,elapse_1) + margin
+        model_0 = Signal([-margin,0,elapse_0,last])
+        model_1 = Signal([-margin,0,elapse_1,last])
+        mask = Signal([-margin,-margin,last,last])
+
+        # if active low, force pwm signal to active high
+        if not active:
+            pwm.slevel = 0
+
+        # if origin not define, set default value
+        split_origin = (max(elapse_0,elapse_1) - period) / 2.
+        if not origin:
+            split_origin += pwm.times[1]
         else:
-            if not one_is_above:
-                code |= 1
+            split_origin += origin
 
-    return ((len(pwm) - 1) / 2,code)
+        # chop signal
+        chops = pwm.chop(period,split_origin)
+
+        # for each symbol period
+        code = 0
+        error = 0
+        for chop in chops[-2::-1]:
+            code <<= 1
+            error <<= 1
+            chop.shift(-chop.times[1])
+            corr_0 = (chop ^ model_0 & mask).integral(level=0,normalize=True)
+            corr_1 = (chop ^ model_1 & mask).integral(level=0,normalize=True)
+            if abs(corr_0 - corr_1) > threshold:
+                if corr_0 < corr_1:
+                    code |= 1
+            else:
+                error |= 1
+
+        # if active level is low, restore it into pwm signal
+        if not active:
+            pwm.slevel = 1
+        return (len(chops)-1,code), error
+
+    ## if not period, convert by pulse elapse time
+    else:
+        code = 0
+        threshold = (elapse_0 + elapse_1) / 2.
+        one_is_above = elapse_0 < elapse_1
+        start_off = (len(pwm) & 1) + 3
+
+        for i in range(len(pwm)-start_off,-1,-2):
+            code <<= 1
+            if pwm.times[i + 1] - pwm.times[i] > threshold:
+                if one_is_above:
+                    code |= 1
+            else:
+                if not one_is_above:
+                    code |= 1
+
+        return (len(pwm) - 1) / 2, code
 
 
 def serial_tx(chars,times,char_bits=8,parity='off',stop_bits=2,baud=50,
@@ -853,7 +982,7 @@ def serial_rx(sline,char_bits=8,parity='off',stop_bits=2,baud=50):
     status = []
 
     # init vars
-    bit_time = sline.tscale / baud
+    bit_time = float(sline.tscale) / baud
     i = 1 
     imax = len(sline) - 1
     start = sline.times[0]
@@ -878,7 +1007,7 @@ def serial_rx(sline,char_bits=8,parity='off',stop_bits=2,baud=50):
 
         # center sampling time to the middle of bit period
         sample_time = start + bit_time / 2.
-            
+
         # sample start bit, search first signal edge after sampling,
         # stop at the last edge.
         while sample_time > sline.times[i]:

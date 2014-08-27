@@ -116,6 +116,35 @@ class TestBitis(unittest.TestCase):
             self.assertEqual(original,signal_out)
 
 
+    def test_chop_join(self):
+        """ Make a number of chop over a random signal.  Test
+        equality of original and chopped/joined signal. """
+
+        # make random sequence repeteable
+        random.seed(1)
+
+        # test 10 random binary codes sequences
+        for s in range(10):
+
+            # build random input data
+            start = random.uniform(-100.,100.)
+            end = random.uniform(start,start + 100.)
+            period_mean = (end - start) / 100.
+            width_mean = 0.02  * period_mean
+            original = bt.noise(start,end,period_mean=period_mean,
+                    width_mean=width_mean)
+            period = 1.
+
+            # chop and join
+            chops = original.chop(period,max_chops=200)
+            signal_out = chops[0]
+            for chop in chops[1:]:
+                signal_out.join(chop,inplace=True)
+
+            # compare original and out signals
+            self.assertEqual(original,signal_out)
+
+
     def test__intersect(self):
         """ Test intersection parameters. """
 
@@ -310,10 +339,11 @@ class TestBitis(unittest.TestCase):
         self.assertEqual(expected_times,times)
 
 
-    def test_pwm_codec(self):
+    def test_pwm_codec_noperiod(self):
         """ Make a number of conversion from a random code to the
         corresponding pwm signal and back again to code. Test
-        equality of input and output codes. """
+        equality of input and output codes. Use pulse elapse
+        conversion method. """
 
         # make random sequence repeteable
         random.seed(1)
@@ -343,6 +373,44 @@ class TestBitis(unittest.TestCase):
             code_out = bt.pwm2bin(pwm,elapse_0,elapse_1)
 
             # compare in and out codes
+            self.assertEqual(code_in,code_out)
+
+
+    def test_pwm_codec_period(self):
+        """ Make a number of conversion from a random code to the
+        corresponding pwm signal and back again to code. Test
+        equality of input and output codes. Use pulse correlation
+        conversion method. """
+
+        # make random sequence repeteable
+        random.seed(1)
+
+        # test 100 random binary codes sequences
+        for s in range(100):
+
+            # build random input data
+            bit_length = random.randint(0,32)
+            code = random.randint(-maxint-1,maxint)
+            code_in = (bit_length,code)
+            period = random.randint(10,20)
+            elapse_0 = random.randint(1,2)
+            elapse_1 = random.randint(1,2) + elapse_0
+            active = random.randint(0,1)
+            origin = random.uniform(-100.,100.)
+
+            # clear unused code bits into code_in
+            mask = 0
+            for i in range(code_in[0]):
+                mask <<= 1
+                mask |= 1
+            code_in = (code_in[0],code_in[1] & mask)
+
+            # from codes to pulses and back again
+            pwm = bt.bin2pwm(code_in,period,elapse_0,elapse_1,active,origin)
+            code_out, error = bt.pwm2bin(pwm,elapse_0,elapse_1,active,period=period)
+
+            # compare in and out codes
+            self.assertEqual(0,error)
             self.assertEqual(code_in,code_out)
 
 
