@@ -46,11 +46,10 @@ jittered.jitter(0.1)
 jittered_noised = jittered ^ bt.noise(0,50,period_mean=5,width_mean=0.5)
 
 # compute correlation between original and disturbed signal
-corr, shift = original.correlation(jittered_noised,step_size=0.1,
-        step_num=11,step_start=jittered_noised.elapse()-0.6)
+corr, shift = original.correlation(jittered_noised,step_size=0.05,step_left=20,step_right=20)
 
 # start plotting
-pl.figure(1)
+fig1 = pl.figure(1,figsize=(6,6))
 pl.suptitle('BITIS: lockin to a noisy signal.')
 
 # plot original signal
@@ -81,6 +80,8 @@ pl.plot(shift,corr)
 pl.ylabel('correlation')
 pl.xlabel('lockin phase')
 pl.subplots_adjust(hspace=0.4)
+
+fig1.savefig('lockin.png',format='png')
 
 pl.show()
 

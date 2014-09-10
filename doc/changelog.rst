@@ -1,6 +1,39 @@
 Changes
 *******
 
+Release 0.9.0 (released 10-Sep-2014)
+===================================
+
+Features added
+--------------
+
+* New method level: return the signal level and edge position at a given time.
+* Methods shift, reverse, __invert__ now can work inplace: result into self signal.
+* New method __nonzero__: return true if the signal is not empty. 
+
+Changes
+-------
+
+* All methods and objects changed to work with the new BTS format (v2).
+* Removed methods: start, end.
+
+Bugs fixed
+----------
+
+* Fix method reverse: now works when signal start != 0.
+* Fix method split when split time falls on signal start or end and after last edge.
+* Fix method chop.
+* Fix methods __eq__ and __ne__: now work when operands are None.
+* Fix function serial_rx. Now work with constant (no edges) signals. Eliminated
+  spurious status generation.
+
+Internals
+---------
+
+* Method _intersect now returns as last edge position the position plus one.
+* Added tests for inplace/noinplace testing.
+
+
 Release 0.8.0 (released 26-Aug-2014)
 ====================================
 

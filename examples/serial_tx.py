@@ -34,12 +34,12 @@ CHAR_BITS = 8
 PARITY = 'odd'
 STOP_BITS = 2
 BAUD = 50
-TSCALE = 1000
+TSCALE = 1.
 
 chars = ['U']
 timings = [0]
 
-pl.figure(1,figsize=(6,3))
+fig1 = pl.figure(1,figsize=(5,2))
 pl.suptitle('BITIS: "U" character serial line coding.')
 pl.xlabel('time')
 bt.serial_tx(chars,timings,char_bits=CHAR_BITS,parity=PARITY,
@@ -58,6 +58,9 @@ pl.text((c + 2.5) * bit_time,0.5,'P',ha='center')
 pl.text((c + 3.5) * bit_time,0.5,'E',ha='center')
 pl.text((c + 4.5) * bit_time,0.5,'E',ha='center')
 pl.grid()
+
+fig1.savefig('serial_tx.png',format='png')
+
 pl.show()
 
 #### END

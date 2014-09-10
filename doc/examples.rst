@@ -11,7 +11,7 @@ module.
 .. literalinclude:: ../examples/xor_logic.py
     :linenos:
     :language: python
-    :lines: 30-48
+    :lines: 30-
 
 Correlation Function
 --------------------
@@ -22,11 +22,11 @@ correlation function.
 .. literalinclude:: ../examples/correlation.py
     :linenos:
     :language: python
-    :lines: 30-73
+    :lines: 30-
 
 This is the plotting result.
 
-.. image:: correlation.png
+.. image:: ../examples/correlation.png
 
 Serial signal
 -------------
@@ -38,11 +38,18 @@ and 50 baud tranmitting speed.
 .. literalinclude:: ../examples/serial_tx.py
     :linenos:
     :language: python
-    :lines: 30-61
+    :lines: 30-
 
-This is the plotting result. The x axis units are milliseconds.
+This is the plotting result. The signal is represented as exiting from a UART
+device at TTL level. This kind of signal is logically inverted with respect to
+a RS-232 signal. The x axis units are seconds. 
 
-.. image:: serial_tx.png
+.. image:: ../examples/serial_tx.png
+
+* S: start bit.
+* 0/1: character bits.
+* P: parity bit.
+* E: stop bits.
 
 Phase lockin
 ------------
@@ -56,10 +63,10 @@ to simulate transmission line disturbances.
 .. literalinclude:: ../examples/lockin.py
     :linenos:
     :language: python
-    :lines: 30-85
+    :lines: 30-
 
 The plot shows the original, the
 disturbed signal and the correlation among them, correlation that reaches a
 maximum when the original has that same phase of the disturbed original. 
 
-.. image:: lockin.png
+.. image:: ../examples/lockin.png

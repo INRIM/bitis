@@ -1,5 +1,47 @@
 NOTE
 
+.note FP20140830
+
+New BTS Format: annotations.
+
+
+
+.note FP20140829
+
+New BTS format: format.
+Components
+self.start	int/float		start time of signal, left extrema of signal domain.
+self.edges	list of int/float	list of signal change times
+self.end	int/float		end time of signal, right extrema of signal domain.
+self.slevel	boolean			the signal logic level at the start time.
+self.tscale	int/float		the unit time scale.
+Rules
+1. signal.start > self.end
+2. signal.start <= self.changes[0]
+3. signal.end >= self.changes[-1]
+4. signal.changes can be []
+5. signal.changes[i] < self.changes[i+1]
+6. signal.start == None ==> void signal
+7. signal == None ==> void signal
+
+New BTS format: the view concept.
+
+Ratio: since signal.changes is potentially big, make easy its reuse.
+A signal view is a way to create a new signal using an existing signal, without copying its changes,
+Components
+view.start
+view.start_change_pos
+view.end_change_pos
+view.end
+Rules
+1. view.start == None ==> the empty view
+2. view.start_change_pos == None ==> empty changes list
+Implementation
+a list [start,scpos,ecpos,end]
+Operation
+s = Signal()
+s.view(view) return a signal object that is a view of s
+
 .note FP20140827
 
 Release build sequence

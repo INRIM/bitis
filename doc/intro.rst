@@ -1,3 +1,12 @@
+
+.. role:: red
+
+.. raw:: html
+
+    <style> .red {color: red; font-weight: bold} </style>
+
+
+
 ==============================================
 Bitis, binary timed signals processing library
 ==============================================
@@ -7,9 +16,8 @@ Introduction
 
 **Bitis** is a python module that implements a full set of operators over
 binary signals represented with BTS format. The `BTS format <./btsformat.html>`_
-is a computer
-memory representation of a binary signal that can have a very compact
-memory footprint when the signal has a low rate of change with respect
+is a computer memory representation of a binary signal that can have a very
+compact memory footprint when the signal has a low rate of change with respect
 to its sampling period.
 
 For example, let see a typical case, a time reference signal having about
@@ -19,13 +27,20 @@ between each two pulses and allows to keep in memory only the signal change
 times: for each second, the time of the pulse front edge and the time of the
 trailing edge.
 
+This the documentation for version |version|.
+
+Since version 0.9.0, the `BTS format <./btsformat.html>`_ :red:`has changed`. The
+start and the end times of the signal are no more in the signal changes times
+sequence. Now, they are attributes of the signal object (Signal.start,
+Signal.end).` 
+
 At present, no effort is made for speed optimization and the employed
 algorithms are essentially procedural. The only goal is "make it work in
 some way" and understand what can be a decent set of objects/methods/functions.
 
 BITIS is released under the GNU General Public License.
 
-At present, version 0.8.0, BITIS is in alpha status. Any debugging aid is
+At present, version |version|, BITIS is in alpha status. Any debugging aid is
 welcome.
 
 For any question, suggestion, contribution contact the author Fabrizio Pollastri <f.pollastri_a_t_inrim.it>.

@@ -38,12 +38,13 @@ random.seed(1)
 # create random signals
 in_a = bt.noise(-2,12,period_mean=6,width_mean=3)
 in_b = bt.noise(-2,12,period_mean=4,width_mean=2)
+print 'in_a,in_b\n',in_a,in_b
 
 # compute correlation
-corr_ab = in_a.correlation(in_b)
+corr_ab = in_a.correlation(in_b,step_size=0.1)
 
 # start plotting
-pl.figure(1)
+fig1 = pl.figure(1,figsize=(5,5))
 pl.suptitle('BITIS: correlation of two signals.')
 
 # plot signal a
@@ -68,6 +69,9 @@ pl.plot(shift,corr)
 pl.ylabel('correlation a b')
 pl.xlabel('signal a shift')
 pl.subplots_adjust(hspace=0.4)
+
+# save figure to file
+fig1.savefig('correlation.png',format='png',)
 
 pl.show()
 

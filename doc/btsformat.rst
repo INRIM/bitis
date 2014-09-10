@@ -7,7 +7,62 @@ Definition
 
 The scope of this memo is to describe the BTS, Binary Timed Signal. A format
 for compact storage of binary signals in computer memory.
-Binary signals are signal that can have only two levels/states, zero or one.
+Binary signals are signal that can have only two logic levels/states, zero or one,
+true or false.
+
+The *BTS* format is composed by 5 signal elements.
+
+1. The start time, integer or float.
+2. The edges times, sequence of integers or floats.
+3. The end time, integer or float.
+4. The start level, integer or boolean.
+5. The time scale, integer or float.
+
+**Start time**
+
+The start time of the signal. Before this time, the signal is not defined.
+When it is none, the signal is considered empty or equivalent to none.
+
+**Edges times**
+
+This sequence stores all the times where the signal changes its level from
+0 to 1 or viceversa. 
+The edge times sequence may be empty: in this case the signal is constant.
+The sequence must be sorted in ascending order.
+
+**End time**
+
+The end time of the signal. After this time, the signal is not defined.
+May be none.
+
+**Start level**
+
+If the edges times sequence has 1 or more items, the start level value
+specifies the signal level from the signal start time to the first edge time.
+If the edges times sequence is empty, the signal has a constant level
+that is equal to the start level value.
+
+**Time scale**
+
+An arbitrary unit of time can be chosen to express the values of times.
+The time scale value is the ratio: 1 second / arbitrary time unit.
+
+
+Python implementation
+---------------------
+
+**BITIS** implements the *BTS* format with the *Signal* class. Each BTS
+signal is an instance of this class. The five elements of the BTS format
+are the five attributes (*start, edges, end, slevel, tscale*) of the *Signal* class.
+The sequence *edges* is realized as list of integers or floats.
+
+
+========================
+Pre version 0.9.0 format
+========================
+
+Pre 0.9.0 definition
+--------------------
 
 The *BTS* format is composed by 3 elements.
 
@@ -42,8 +97,8 @@ An arbitrary unit of time can be chosen to express the values of change times.
 The time scale value is the ratio: 1 second / arbitrary time unit.
 
 
-Python implementation
----------------------
+Pre 0.9.0 python implementation
+-------------------------------
 
 **BITIS** implements the *BTS* format with the *Signal* class. Each BTS
 signal is an instance of this class. The three elements of the BTS format

@@ -6,7 +6,7 @@
 # .author     : Fabrizio Pollastri
 # .site	      : Torino - Italy
 # .creation   :	26-Sep-2013
-# .copyright  :	(c) 2013 Fabrizio Pollastri
+# .copyright  :	(c) 2013-2014 Fabrizio Pollastri
 # .license    : GNU General Public License (see below)
 #
 # This file is part of "BITIS, Binary Timed Signal Processing Library".
@@ -41,20 +41,24 @@ class TestBitis(unittest.TestCase):
         """ Prepare testing signals """
 
         # test signal instance
+        self.empty = bt.Signal()
         self.test = bt.Signal()
         self.test.test()
+        self.testing = self.test.clone()
 
-        # test signals: a base signal and its shifted copies.
-        # Graph of base signal __|^|_|^^ """
-        times = [0,2,3,4,6]
-        self.base = bt.Signal(times,slevel=0,tscale=1)
-        self.shift1 = bt.Signal([i + 1 for i in times],slevel=0,tscale=1)
-        self.shift2 = bt.Signal([i + 2 for i in times],slevel=0,tscale=1)
-        self.shift3 = bt.Signal([i + 3 for i in times],slevel=0,tscale=1)
-        self.shift4 = bt.Signal([i + 4 for i in times],slevel=0,tscale=1)
-        self.shift5 = bt.Signal([i + 5 for i in times],slevel=0,tscale=1)
-        self.shift6 = bt.Signal([i + 6 for i in times],slevel=0,tscale=1)
-        self.shift7 = bt.Signal([i + 7 for i in times],slevel=0,tscale=1)
+        # test signals: a signal and its shifted copies.
+        # Graph of base signal __|^|_|^^^ """
+        self.one0 = bt.Signal(0,[],7,slevel=1)
+        self.zero0 = bt.Signal(0,[],7)
+        self.sig0 = bt.Signal(0,[2,3,4],7)
+        self.sig1 = bt.Signal(1,[3,4,5],8)
+        self.sig2 = bt.Signal(2,[4,5,6],9)
+        self.sig3 = bt.Signal(3,[5,6,7],10)
+        self.sig4 = bt.Signal(4,[6,7,8],11)
+        self.sig5 = bt.Signal(5,[7,8,9],12)
+        self.sig6 = bt.Signal(6,[8,9,10],13)
+        self.sig7 = bt.Signal(7,[9,10,11],14)
+        self.sig8 = bt.Signal(8,[10,11,12],15)
 
 
     def test_clone(self):
@@ -64,29 +68,50 @@ class TestBitis(unittest.TestCase):
         self.assertEqual(self.test,self.test.clone())
 
 
-    def test_shift(self):
-        """ Test signal shifting. """
+    def test_shift_inplace(self):
+        """ Test inplace signal shifting. """
 
         # shift forward, backward and to same place again
-        testing= self.test.clone()
-        testing.shift(13)
-        testing.shift(-23)
-        testing.shift(10)
+        self.testing.shift(13)
+        self.testing.shift(-23)
+        self.testing.shift(10)
 
         # test expected offsets
-        self.assertEqual(self.test,testing)
+        self.assertEqual(self.test,self.testing)
 
 
-    def test_reverse(self):
-        """ Test signal edge reversing. """
+    def test_shift_noinplace(self):
+        """ Test not in place signal shifting. """
+
+        # shift forward, backward and to same place again
+        testing1 = self.test.shift(13,inplace=False)
+        testing2 = testing1.shift(-23,inplace=False)
+        testing3 = testing2.shift(10,inplace=False)
+
+        # test expected offsets
+        self.assertEqual(self.test,testing3)
+
+
+    def test_reverse_inplace(self):
+        """ Test in place signal edge reversing. """
 
         # reverse 
-        testing = self.base.clone()
-        testing.reverse()
+        self.testing.reverse()
+        self.testing.reverse()
 
         # compare expected signal and testing result
-        expected = bt.Signal([0,2,3,4,6],slevel=1,tscale=1)
-        self.assertEqual(expected,testing)
+        self.assertEqual(self.test,self.testing)
+
+
+    def test_reverse_noinplace(self):
+        """ Test not in place signal edge reversing. """
+
+        # reverse 
+        testing1 = self.test.reverse(inplace=False)
+        testing2 = testing1.reverse(inplace=False)
+
+        # compare expected signal and testing result
+        self.assertEqual(self.test,testing2)
 
 
     def test_join_split(self):
@@ -108,6 +133,8 @@ class TestBitis(unittest.TestCase):
             original = bt.noise(start,end,period_mean=period_mean,
                     width_mean=width_mean)
 
+            original = self.sig0
+            split = 3
             # split and join
             signal_a, signal_b = original.split(split)
             signal_out = signal_a.join(signal_b)
@@ -133,10 +160,9 @@ class TestBitis(unittest.TestCase):
             width_mean = 0.02  * period_mean
             original = bt.noise(start,end,period_mean=period_mean,
                     width_mean=width_mean)
-            period = 1.
 
             # chop and join
-            chops = original.chop(period,max_chops=200)
+            chops = original.chop(period_mean,max_chops=200)
             signal_out = chops[0]
             for chop in chops[1:]:
                 signal_out.join(chop,inplace=True)
@@ -148,135 +174,156 @@ class TestBitis(unittest.TestCase):
     def test__intersect(self):
         """ Test intersection parameters. """
 
-        testing = self.base._intersect(self.base)
-        self.assertEqual((0,6,1,3,0,1,3,0),testing)
-
-        testing = self.base._intersect(self.shift1)
-        self.assertEqual((1,6,1,3,0,1,3,0),testing)
-
-        testing = self.base._intersect(self.shift2)
-        self.assertEqual((2,6,1,3,0,1,3,0),testing)
-
-        testing = self.base._intersect(self.shift3)
-        self.assertEqual((3,6,2,3,1,1,2,0),testing)
-
-        testing = self.base._intersect(self.shift4)
-        self.assertEqual((4,6,3,3,0,1,1,0),testing)
+        testing = self.sig0._intersect(self.sig0)
+        self.assertEqual((0,7,0,3,0,0,3,0),testing)
  
-        testing = self.base._intersect(self.shift5)
-        self.assertEqual((5,6,4,3,1,1,0,0),testing)
+        testing = self.sig0._intersect(self.sig1)
+        self.assertEqual((1,7,0,3,0,0,3,0),testing)
 
-        testing = self.base._intersect(self.shift6)
+        testing = self.sig0._intersect(self.sig2)
+        self.assertEqual((2,7,0,3,0,0,3,0),testing)
+
+        testing = self.sig0._intersect(self.sig3)
+        self.assertEqual((3,7,1,3,1,0,3,0),testing)
+
+        testing = self.sig0._intersect(self.sig4)
+        self.assertEqual((4,7,2,3,0,0,2,0),testing)
+	 
+        testing = self.sig0._intersect(self.sig5)
+        self.assertEqual((5,7,3,3,1,0,1,0),testing)
+
+        testing = self.sig0._intersect(self.sig6)
+        self.assertEqual((6,7,3,3,1,0,0,0),testing)
+
+        testing = self.sig0._intersect(self.sig7)
         self.assertEqual(None,testing)
 
-        testing = self.base._intersect(self.shift7)
+        testing = self.sig0._intersect(self.sig8)
+        self.assertEqual(None,testing)
+
+        testing = self.sig0._intersect(self.empty)
         self.assertEqual(None,testing)
 
 
-    def test_invert(self):
-        """ Test logical not on test signal. """
+
+    def test_invert_inplace(self):
+        """ Test in place logical not on test signal. """
 
         # from original signal to itself through a doble not
-        testing = ~ ~self.base
+        self.testing.__invert__(inplace=True)
+        self.testing.__invert__(inplace=True)
 
         # compare original test signal and output signal
-        self.assertEqual(self.base,testing)
+        self.assertEqual(self.test,self.testing)
+
+
+    def test_invert_noinplace(self):
+        """ Test not in place logical not on test signal. """
+
+        # from original signal to itself through a doble not
+        testing = ~ ~self.test
+
+        # compare original test signal and output signal
+        self.assertEqual(self.test,testing)
 
 
     def test_and(self):
         """ Test logical and on test signal. """
 
-        testing = self.base & self.base
-        self.assertEqual(self.base,testing)
+        testing = self.sig0 & self.one0
+        self.assertEqual(self.sig0,testing)
 
-        testing = self.base & self.shift1
-        expected = bt.Signal([1,5,6],slevel=0,tscale=1)
+        testing = self.sig0 & self.sig0
+        self.assertEqual(self.sig0,testing)
+
+        testing = self.sig0 & self.sig1
+        expected = bt.Signal(1,[5],7,slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
-        testing = self.base & self.shift2
-        expected = bt.Signal([2,4,5,6,6],slevel=0,tscale=1)
+        testing = self.sig0 & self.sig2
+        expected = bt.Signal(2,[4,5,6],7,slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
-        testing = self.base & self.shift3
-        expected = bt.Signal([3,5,6,6],slevel=0,tscale=1)
+        testing = self.sig0 & self.sig3
+        expected = bt.Signal(3,[5,6,7],7,slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
-        testing = self.base & self.shift4
-        expected = bt.Signal([4,6,6],slevel=0,tscale=1)
+        testing = self.sig0 & self.sig4
+        expected = bt.Signal(4,[6,7],7,slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
-        testing = self.base & self.shift5
-        expected = bt.Signal([5,6],slevel=0,tscale=1)
+        testing = self.sig0 & self.sig5
+        expected = bt.Signal(5,[7],7,slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
-        testing = self.base & self.shift6
+        testing = self.sig0 & self.sig6
+        expected = bt.Signal(6,[],7,slevel=0,tscale=1)
+        self.assertEqual(expected,testing)
+
+        testing = self.sig0 & self.sig7
         expected = None
         self.assertEqual(expected,testing)
 
-        testing = self.base & self.shift7
-        expected = None
-        self.assertEqual(expected,testing)
-
-
+    
     def test_or(self):
         """ Test logical or on test signal. """
 
-        testing = self.base | self.base
-        self.assertEqual(self.base,testing)
+        testing = self.sig0 | self.sig0
+        self.assertEqual(self.sig0,testing)
 
-        testing = self.base | self.shift1
-        expected = bt.Signal([1,2,6],slevel=0,tscale=1)
+        testing = self.sig0 | self.sig1
+        expected = bt.Signal(1,[2],7,slevel=0,tscale=1)
+        self.assertEqual(expected,testing)
+ 
+        testing = self.sig0 | self.sig2
+        expected = bt.Signal(2,[2,3,4],7,slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
-        testing = self.base | self.shift2
-        expected = bt.Signal([2,2,3,4,6],slevel=0,tscale=1)
+        testing = self.sig0 | self.sig3
+        expected = bt.Signal(3,[3,4],7,slevel=1,tscale=1)
         self.assertEqual(expected,testing)
 
-        testing = self.base | self.shift3
-        expected = bt.Signal([3,3,4,6],slevel=1,tscale=1)
+        testing = self.sig0 | self.sig4
+        expected = bt.Signal(4,[4],7,slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
-        testing = self.base | self.shift4
-        expected = bt.Signal([4,4,6],slevel=0,tscale=1)
-        self.assertEqual(expected,testing)
-
-        testing = self.base | self.shift5
-        expected = bt.Signal([5,6],slevel=1,tscale=1)
+        testing = self.sig0 | self.sig5
+        expected = bt.Signal(5,[],7,slevel=1,tscale=1)
         self.assertEqual(expected,testing)
 
 
     def test_xor(self):
         """ Test logical xor on test signal. """
 
-        testing = self.base ^ self.base
-        expected = bt.Signal([0,6],slevel=0,tscale=1)
+        testing = self.sig0 ^ self.sig0
+        expected = bt.Signal(0,[],7,slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
-        testing = self.base ^ self.shift1
-        expected = bt.Signal([1,2,5,6],slevel=0,tscale=1)
+        testing = self.sig0 ^ self.sig1
+        expected = bt.Signal(1,[2,5],7,slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
-        testing = self.base ^ self.shift2
-        expected = bt.Signal([2,2,3,5,6],slevel=0,tscale=1)
+        testing = self.sig0 ^ self.sig2
+        expected = bt.Signal(2,[2,3,5,6],7,slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
-        testing = self.base ^ self.shift3
-        expected = bt.Signal([3,3,4,5,6],slevel=1,tscale=1)
+        testing = self.sig0 ^ self.sig3
+        expected = bt.Signal(3,[3,4,5,6,7],7,slevel=1,tscale=1)
         self.assertEqual(expected,testing)
 
-        testing = self.base ^ self.shift4
-        expected = bt.Signal([4,4,6],slevel=0,tscale=1)
+        testing = self.sig0 ^ self.sig4
+        expected = bt.Signal(4,[4,6,7],7,slevel=0,tscale=1)
         self.assertEqual(expected,testing)
 
-        testing = self.base ^ self.shift5
-        expected = bt.Signal([5,6],slevel=1,tscale=1)
+        testing = self.sig0 ^ self.sig5
+        expected = bt.Signal(5,[7],7,slevel=1,tscale=1)
         self.assertEqual(expected,testing)
 
-        testing = self.base ^ self.shift6
-        expected = None
+        testing = self.sig0 ^ self.sig6
+        expected = bt.Signal(6,[],7,slevel=1,tscale=1)
         self.assertEqual(expected,testing)
 
-        testing = self.base ^ self.shift7
+        testing = self.sig0 ^ self.sig7
         expected = None
         self.assertEqual(expected,testing)
 
@@ -301,6 +348,9 @@ class TestBitis(unittest.TestCase):
             in_a = bt.noise(start_a,end_a,period_mean=0.1,width_mean=3)
             in_b = bt.noise(start_b,end_b,period_mean=0.3,width_mean=2)
 
+            in_a = self.sig0
+            in_b = self.sig2
+
             # direct xor
             xor1 = in_a ^ in_b
 
@@ -309,6 +359,7 @@ class TestBitis(unittest.TestCase):
 
             # compare original test signal and output signal
             self.assertEqual(xor1,xor2)
+
 
 
     def test_integral(self):
@@ -324,8 +375,8 @@ class TestBitis(unittest.TestCase):
         """ Test correlation function of two signals (*self* and *other*). """
 
         # create test signals
-        in_a = bt.Signal([-2,-1,1,2,7,12])
-        in_b = bt.Signal([-2,0,3,5,8,12])
+        in_a = bt.Signal(-2,[-1,1,2,7],12)
+        in_b = bt.Signal(-2,[0,3,5,8],12)
         expected_corr =  [  1,  2,  2,  2, 2, 2, 2, 3, 4, 5, 6, 6, 6]
         expected_times = [-13,-12,-11,-10,-9,-8,-7,-6,-5,-4,-3,-2,-1]
         expected_corr +=  [9,10,9,7,3,3,3,3,2,1, 2, 1, 1, 1]
@@ -470,7 +521,7 @@ class TestBitis(unittest.TestCase):
         # split original several times, pass first splited part to a stream
         # signal, append stream excess to an accumulator signal.
         # At each step, check if original is equal to part b + stream + acc.
-        start = original.start()
+        start = original.start
         tosplit = original
         for i in range(10):
             split = random.uniform(start,200.)
