@@ -207,31 +207,7 @@ class Signal:
         *self*. The end level of *self* must be equal to the start level of
         *other*. Otherwise, no append is done. """
 
-        # if other is empty, no append.
-        if not other:
-            return self
-
-        # if self is empty, copy other into self.
-        if not self:
-            other.clone_into(self)
-            return other
-
-        # check for non overlap
-        assert self.end <= other.start, \
-                'self and other overlaps in time.\n' \
-                + 'self end = ' + str(self.end()) \
-                + ' , other start = ' + str(other.start())
-
-        # check for same end-start level
-        assert len(self) & 1 ^ self.slevel == other.slevel, \
-                'self end level differ from other start level.\n' \
-                + 'self end level = ' + str(len(self) & 1 ^ self.slevel) \
-                + ' , other start level = ' + str(other.slevel)
-
-        # append edges of other to self
-        self.edges += other.edges
-
-        return self
+        return self.join(other,inplace=True)
 
 
     def split(self,split,inplace=False):
@@ -297,13 +273,26 @@ class Signal:
         different levels at *self* end and at *other* start cannot be joined
         (join returns None). """
 
-        # if self is not before other, return None.
-        if self.end > other.start:
-            return None
+        # if other is empty, no append.
+        if not other:
+            return self
 
-        # if end level of self is equal to start level of other, return None.
-        if len(self) & 1 ^ self.slevel != other.slevel:
-            return None
+        # if self is empty, copy other into self.
+        if not self:
+            other.clone_into(self)
+            return other
+
+        # check for non overlap
+        assert self.end <= other.start, \
+                'self and other overlaps in time.\n' \
+                + 'self end = ' + str(self.end()) \
+                + ' , other start = ' + str(other.start())
+
+        # check for same end-start level
+        assert len(self) & 1 ^ self.slevel == other.slevel, \
+                'self end level differ from other start level.\n' \
+                + 'self end level = ' + str(len(self) & 1 ^ self.slevel) \
+                + ' , other start level = ' + str(other.slevel)
 
         # join
         if inplace:
@@ -818,10 +807,10 @@ class Signal:
 
         self.append(other)
 
-        # if self elapse below allowed max, return an empty discarded signal
+        # if self elapse below allowed max, return none as discarded signal
         # and the "appendend" self.
         if self.elapse() <= elapse:
-            return (Signal(),self)
+            return (None,self)
 
         # compute shift to be applied, if any.
         shift = (int((self.elapse() - elapse) / buf_step) + 1) * buf_step
