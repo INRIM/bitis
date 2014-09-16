@@ -54,8 +54,9 @@ Release build sequence
 5. Run: git commit -a                # copy changelog.rst into commit message
 6. Run: git tag -a x.y.x             # x.y.z is the version nember
 7. Run: python setup.py register     # upload program to pypi
-8. Run: python setup.py upload_doc   # upload documentation
-9. Run: ./website_publish.sh	     # upload doc to bitis.inrim.it
+8. Run: cd bitis/doc/_build/html; zip -r ../html.zip .
+9. From pypi  site/bitis page bottom,select file html.zip, click upload
+10. Run: ./website_publish.sh	     # upload doc to bitis.inrim.it
 
 
 .note FP20131118

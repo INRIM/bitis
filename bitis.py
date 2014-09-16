@@ -107,9 +107,14 @@ class Signal:
             if time > self.end:
                 return None, None
             else:
-                return (len(self) - 1) & 1 ^ self.slevel, len(self)
-        tpos -= 1
+                return len(self) & 1 ^ self.slevel, len(self)
         return tpos & 1 ^ self.slevel, tpos
+
+
+    def end_level(self):
+        """ Return the logic level at the end of a signal object. """
+
+        return len(self) & 1 ^ self.slevel
 
 
     def test(self):
@@ -239,28 +244,100 @@ class Signal:
                 return self.clone(), None
 
         # search split point
-        i = 0
-        for i in range(len(self)):
-            if split <= self.edges[i]:
-                break
-        else:
-            i += 1
+        level, split_pos = self.level(split)
 
         # older signal part: pre split time. 
-        older = Signal(self.start,self.edges[0:i],split,slevel=self.slevel,
-                tscale=self.tscale)
+        older = Signal(self.start,self.edges[0:split_pos],split,
+                slevel=self.slevel,tscale=self.tscale)
 
         # newer signal part: post split time.
         if inplace:
             self.start = split
-            self.edges = self.edges[i:]
-            self.slevel = len(older) & 1 ^ self.slevel
+            self.edges = self.edges[split_pos:]
+            self.slevel = level
             newer = self
         else:
-            newer = Signal(split,self.edges[i:],self.end,
-                slevel=len(older) & 1 ^ self.slevel,tscale=self.tscale)
+            newer = Signal(split,self.edges[split_pos:],self.end,
+                slevel=level,tscale=self.tscale)
 
         return older, newer
+
+
+    def older(self,split,inplace=False):
+        """ Split the signal into two signals. *split* is the split time.
+        Return the older part: the part of the original signal before the
+        split time, it ends at the split time.
+        If *inplace* is false, the newer part is a new signal object.
+        If *inplace* is true, the newer part is put into the *self* signal. 
+        If *split* is equal to a signal change time, the change is left out.
+        If *split* is not inside the original signal domain, no split
+        occours, None is returned. """
+
+        # if split outside signal domain, return None.
+        if split < self.start or self.end < split:
+            return None
+
+        # if split falls on start or end
+        if split == self.start:
+            return None
+        elif split == self.end:
+            if inplace:
+                return self
+            else:
+                return self.clone()
+
+        # search split point
+        level, split_pos = self.level(split)
+
+        # older signal part: pre split time. 
+        if inplace:
+            self.edges = self.edges[0:split_pos]
+            older = self
+        else:
+            older = Signal(self.start,self.edges[0:split_pos],split,
+                slevel=self.slevel,tscale=self.tscale)
+
+        return older
+
+
+    def newer(self,split,inplace=False):
+        """ Split the signal into two signals. *split* is the split time.
+        Return the newer part: the part of the original
+        signal before the split time, it ends at the split time.
+        If *split* is equal to a signal change time, the change is put into
+        the newer part.
+        If *inplace* is false, the newer part is a new signal object.
+        If *inplace* is true, the newer part is put into the *self* signal. 
+        If *split* is not inside the original signal domain, no split
+        occours, None is returned. """
+
+        # if split outside signal domain, return None.
+        if split < self.start or self.end < split:
+            return None
+
+        # if split falls on start or end
+        if split == self.start:
+            if inplace:
+                return self
+            else:
+                return self.clone()
+        elif split == self.end:
+            return None
+
+        # search split point
+        level, split_pos = self.level(split)
+
+        # newer signal part: post split time.
+        if inplace:
+            self.start = split
+            self.edges = self.edges[split_pos:]
+            self.slevel = level
+            newer = self
+        else:
+            newer = Signal(split,self.edges[split_pos:],self.end,
+                slevel=level,tscale=self.tscale)
+
+        return newer
 
 
     def join(self,other,inplace=False):
@@ -285,8 +362,8 @@ class Signal:
         # check for non overlap
         assert self.end <= other.start, \
                 'self and other overlaps in time.\n' \
-                + 'self end = ' + str(self.end()) \
-                + ' , other start = ' + str(other.start())
+                + 'self end = ' + str(self.end) \
+                + ' , other start = ' + str(other.start)
 
         # check for same end-start level
         assert len(self) & 1 ^ self.slevel == other.slevel, \
@@ -807,7 +884,7 @@ class Signal:
 
         self.append(other)
 
-        # if self elapse below allowed max, return none as discarded signal
+        # if self elapse below allowed max, return an empty discarded signal
         # and the "appendend" self.
         if self.elapse() <= elapse:
             return (None,self)
@@ -1060,44 +1137,33 @@ def serial_rx(sline,char_bits=8,parity='off',stop_bits=2,baud=50):
     bit_time = float(sline.tscale) / baud
     tpos = 0 
     imax = len(sline)
-    start = sline.start
     char = 0
+
+    # start from first edge, if none terminate.
+    try: 
+        start = sline.edges[0]
+    except:
+        return chars, timings, status
+
     # consume all serial line pulses
     while True:
-
-        # search the first signal edge after start, stop at the last edge.
-        level, tpos = sline.level(start,tpos)
-
-        # if start goes beyond the last edge, terminate.
-        if level is None:
-            return chars, timings, status
-
-        # if start falls into zero level, move start to next rising edge.
-        if level:
-            tpos += 1
-            try:
-                start = sline.edges[tpos]
-            # if no more edges, terminate.
-            except:
-                return chars, timings, status
 
         # center sampling time to the middle of bit period
         sample_time = start + bit_time / 2.
 
-        # sample start bit, search first signal edge after sampling,
-        # stop at the last edge.
+        # sample start bit level and first edge after it
         level, tpos = sline.level(sample_time,tpos)
-        # if start bit sampling  goes beyond the last edge, terminate.
+        # if start bit sampling goes beyond the last edge, terminate.
         if level is None:   
-            status.append(EOS_START)
-            chars.append(chr(0))
-            timings.append(start)
             return chars, timings, status
 
         # detect line level at sampling time. If it is 0,
         # character start is aborted, go to the begining.
-        if level:
-            start = sample_time
+        if not level:
+            try:
+                start = sline.edges[tpos]
+            except:
+                pass 
             continue
 
         # presume OK for rx char status
@@ -1118,7 +1184,7 @@ def serial_rx(sline,char_bits=8,parity='off',stop_bits=2,baud=50):
                 status[-1] |= EOS_CHAR
                 return chars, timings, status
             char >>= 1
-            if level:
+            if not level:
                 char |= char_mask[char_bits]
         chars.append(chr(char))
         timings.append(start)
@@ -1142,7 +1208,7 @@ def serial_rx(sline,char_bits=8,parity='off',stop_bits=2,baud=50):
                 parity_bit = level
 
             # check
-            if parity_bit != ones:
+            if parity_bit == ones:
                 status[-1] |= PARITY_ERROR
 
         # sample stop bit(s)
@@ -1155,7 +1221,7 @@ def serial_rx(sline,char_bits=8,parity='off',stop_bits=2,baud=50):
                 status[-1] |= EOS_STOP
                 return chars, timings, status
             # if level at stop sampling is 0, set error and go to next char
-            elif level == 0:
+            elif level:
                 status[-1] |= STOP_ERROR
 
         # move start of next char at stop bits end.
@@ -1207,7 +1273,7 @@ def noise(origin,end,period_mean=1,period_stddev=1,
     last_pause_end = \
             abs(random.gauss(pause_mean,pause_stddev)) + origin
     if last_pause_end > end:
-        return
+        return noise
 
     # make noise pulses
     while True:

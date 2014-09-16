@@ -29,10 +29,14 @@ This sequence stores all the times where the signal changes its level from
 0 to 1 or viceversa. 
 The edge times sequence may be empty: in this case the signal is constant.
 The sequence must be sorted in ascending order.
+All elements must have different times.
+The first element must be greater or equal to the start time.
+The last element must be lower or equal to the end time.
 
 **End time**
 
 The end time of the signal. After this time, the signal is not defined.
+The end time must be greater than the start time.
 May be none.
 
 **Start level**

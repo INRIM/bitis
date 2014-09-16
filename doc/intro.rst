@@ -27,7 +27,7 @@ between each two pulses and allows to keep in memory only the signal change
 times: for each second, the time of the pulse front edge and the time of the
 trailing edge.
 
-This the documentation for version |version|.
+This is the documentation for version |version|.
 
 Since version 0.9.0, the `BTS format <./btsformat.html>`_ :red:`has changed`. The
 start and the end times of the signal are no more in the signal changes times

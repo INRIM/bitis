@@ -126,21 +126,57 @@ class TestBitis(unittest.TestCase):
 
             # build random input data
             start = random.uniform(-100.,100.)
-            end = random.uniform(start,start + 100.)
+            end = random.uniform(start,start + 10.)
+            split = random.uniform(start+0.001,end-0.001)
+            period_mean = (end - start) / 100.
+            width_mean = 0.2  * period_mean
+            inplace = random.randint(0,1)
+            original = bt.noise(start,end,period_mean=period_mean,
+                    width_mean=width_mean)
+            if inplace:
+              reference = original.clone()
+            else:
+              reference = original
+
+            # split and join
+            signal_a, signal_b = original.split(split,inplace=inplace)
+            signal_out = signal_a.join(signal_b)
+
+            # compare original and out signals
+            self.assertEqual(reference,signal_out)
+
+
+    def test_older_newer(self):
+        """ Make a number of newer/older splits over a random signal.  Test
+        equality of original and splitted/joined signal. """
+
+        # make random sequence repeteable
+        random.seed(1)
+
+        # test 100 random binary codes sequences
+        for s in range(100):
+
+            # build random input data
+            start = random.uniform(-100.,100.)
+            end = random.uniform(start,start + 10.)
             split = random.uniform(start+0.001,end-0.001)
             period_mean = (end - start) / 100.
             width_mean = 0.2  * period_mean
             original = bt.noise(start,end,period_mean=period_mean,
                     width_mean=width_mean)
+            inplace = random.randint(0,1)
+            if inplace:
+              reference = original.clone()
+            else:
+              reference = original
 
-            original = self.sig0
-            split = 3
             # split and join
-            signal_a, signal_b = original.split(split)
-            signal_out = signal_a.join(signal_b)
+            older = original.older(split)
+            newer = original.newer(split,inplace=inplace)
+            result = older.join(newer)
 
             # compare original and out signals
-            self.assertEqual(original,signal_out)
+            self.assertEqual(reference,result)
 
 
     def test_chop_join(self):
@@ -458,7 +494,8 @@ class TestBitis(unittest.TestCase):
 
             # from codes to pulses and back again
             pwm = bt.bin2pwm(code_in,period,elapse_0,elapse_1,active,origin)
-            code_out, error = bt.pwm2bin(pwm,elapse_0,elapse_1,active,period=period)
+            code_out, error = bt.pwm2bin(pwm,elapse_0,elapse_1,active,
+                period=period)
 
             # compare in and out codes
             self.assertEqual(0,error)
