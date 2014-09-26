@@ -37,7 +37,7 @@ import sys              # sys constants
 
 # define global variables
 
-__version__ = '0.9.0'
+__version__ = '0.10.0'
 __author__ = 'Fabrizio Pollastri <f.pollastri@inrim.it>'
 
 
@@ -56,13 +56,7 @@ class Signal:
     not used.
     """
 
-    # a test signal with a sequence of primes as edges timing
-    TEST_START = -1
-    TEST_EDGES = [0,1,2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61]
-    TEST_END = 62
-
-
-    def __init__(self,start=None,edges=None,end=None,slevel=0,tscale=1):
+    def __init__(self,start=None,edges=None,end=None,slevel=0,tscale=1.):
 
         # signal start time
         self.start = start
@@ -70,7 +64,7 @@ class Signal:
         if edges is None:
             self.edges = []
         else:
-           self.edges = edges
+            self.edges = edges
         # signal end time
         self.end = end
         # signal level before the first change
@@ -78,15 +72,79 @@ class Signal:
         # time scale of edges time (1=1s)
         self.tscale = tscale
 
+        self.validate()
+
+
+    def validate(self):
+        """ Validate signal attributes. Complete type and value checking of
+        signal object attributes. If a check fails, an exception is raised. """
+
+        # type checking
+        if not type(self.start) in (float,int,type(None)):
+            raise TypeError('signal start time must be float or int.' 
+                + '\n  found start type: %s' % type(self.start))
+        if not type(self.edges) in (list,):
+            raise TypeError('signal edges times must be a list.'
+                + '\n  found edges type: %s' % type(self.edges))
+        if len(self.edges) > 0:
+            edge_type = type(self.edges[0])
+            if not edge_type in (float,int):
+                raise TypeError('signal edge time must be float or int.'
+                    + '\n  found edge type: %s' % type(self.edges[0]))
+            if len(self.edges) > 1:
+                for i in range(1,len(self.edges)):
+                    if not type(self.edges[i]) == edge_type:
+                      raise TypeError(
+                          'signal edges times must be all float or int'
+                          + '\n  expected edge type: %s' % edge_type
+                          + '\n  found edges[%d] type: %s' %
+                              (i,type(self.edges[i])))
+        if not type(self.end) in (float,int,type(None)):
+            raise TypeError('signal end time must be float or int.'
+                + '\n  found end type: %s' % type(self.end))
+        if not type(self.slevel) in (bool,int):
+            raise TypeError('signal start level must be boolean or int.'
+                + '\n  found start level type: %s' % type(self.slevel))
+        if not type(self.tscale) in (float,int):
+            raise TypeError('signal time scale must be float or int.'
+                + '\n  found time scale type: %s' % type(self.tscale))
+
+        # value checking
+        if self.start and not self.start < self.end:
+            raise ValueError('signal start time must be < then end time.'
+                + '\n  start time: %s' % str(self.start)
+                + '\n  end time: %s' % str(self.end))
+        if len(self.edges) > 0:
+            if not self.start <= self.edges[0]:
+                raise ValueError(
+                    'signal start time must be <= than first edge time.'
+                    + '\n  start time: %s' % str(self.start)
+                    + '\n  first edge time: %s' % str(self.edges[0]))
+            if not self.edges[-1] <= self.end:
+                raise ValueError(
+                   'signal last edge time must be <= than end time.'
+                   + '\n  last edge time: %s' % str(self.edges[-1])
+                   + '\n  end time: %s' % str(self.end))
+            if len(self.edges) > 1:
+                for i in range(1,len(self.edges)):
+                    if not self.edges[i-1] < self.edges[i]:
+                        raise ValueError(
+                          'signal edges times must be ascending.'
+                          +'\n  found edges[%d]: %s'% (i-1,str(self.edges[i-1]))
+                          +'\n  found edges[%d]: %s' % (i,str(self.edges[i])))
+
 
     def __str__(self):
-       
+      
         descr = '%s\n' % object.__str__(self)
-        descr += '  start: %s\n' % self.start
-        descr += '  edges: %s\n' % self.edges
-        descr += '  end: %s\n' % self.end
-        descr += '  start level: %d\n' % self.slevel
-        descr += '  time scale: %d' % self.tscale
+        if not self:
+            descr += '  The Void Signal'
+        else:
+            descr += '  start: %s\n' % self.start
+            descr += '  edges: %s\n' % self.edges
+            descr += '  end: %s\n' % self.end
+            descr += '  start level: %d\n' % self.slevel
+            descr += '  time scale: %d' % self.tscale
 
         return descr
 
@@ -117,15 +175,6 @@ class Signal:
         return len(self) & 1 ^ self.slevel
 
 
-    def test(self):
-        """ Fill signal object with a test signal. Previous signal
-        times are destroyed. Start level and time scale are preserved. """
-
-        self.start = self.TEST_START
-        self.edges = self.TEST_EDGES
-        self.end = self.TEST_END
-
-
     def clone(self):
         """ Return a deep copy with the same attributes/values of signal
         object. """
@@ -134,25 +183,28 @@ class Signal:
 
 
     def clone_into(self,other):
-        """ Full copy of signal object into *other*. Each other attribute is
-        assigned a deep copy of the value of the same attribute in signal
-        object. Return *other*. """
+        """ Return a full copy of signal object into *other*. Each other
+        attribute is assigned a deep copy of the value of the same attribute
+        in signal object. Return *other*. """
 
+        # copy all self attributes into other
         other.start = self.start
         other.edges = self.edges[:]
         other.end = self.end
         other.slevel = self.slevel
         other.tscale = self.tscale
 
+        return other
+
 
     def elapse(self):
         """ Ruturn the signal elapse time: end time - start time.
-        Return none, if the signal is empty (start==None). """
+        If *self* is void, return None."""
 
-        if self.start: 
-            return self.end - self.start
-        else:
+        if not self:
             return None
+
+        return self.end - self.start
 
 
     def shift(self,offset,inplace=False):
@@ -165,6 +217,10 @@ class Signal:
             sig = self
         else:
             sig = self.clone()
+
+        # void signal are shift invariant
+        if not sig:
+            return sig
 
         # add offset
         sig.start += offset
@@ -225,23 +281,29 @@ class Signal:
         If *inplace* is false, the second signal is a new signal object.
         If *inplace* is true, the second signal is put into the *self* signal. 
         If *split* is not inside the original signal domain, no split
-        occours, None is returned. """
+        occours, the void signal is returned.
+        If *self* is void, return the void signal. """
 
-        # if split outside signal domain, return None.
-        if split < self.start or self.end < split:
-            return None
+        # void is split invariant
+        if not self:
+            if inplace:
+                return self, self
+            else:
+                return Signal(), Signal()
 
-        # if split falls on start or end
-        if split == self.start:
+        # split before signal start
+        if split <= self.start:
             if inplace:
-                return None, self
+                return Signal(), self
             else:
-                return None, self.clone()
-        elif split == self.end:
+                return Signal(), self.clone()
+
+        #  split after signal end
+        if self.end <= split:
             if inplace:
-                return self, None
+                return self, Signal()
             else:
-                return self.clone(), None
+                return self.clone(), Signal()
 
         # search split point
         level, split_pos = self.level(split)
@@ -271,15 +333,18 @@ class Signal:
         If *inplace* is true, the newer part is put into the *self* signal. 
         If *split* is equal to a signal change time, the change is left out.
         If *split* is not inside the original signal domain, no split
-        occours, None is returned. """
+        occours, a void signal is returned. """
 
-        # if split outside signal domain, return None.
-        if split < self.start or self.end < split:
-            return None
+        # if split outside signal domain, return void.
+        if not self or split < self.start or self.end < split:
+            if inplace:
+                return self
+            else:
+                return self.clone()
 
         # if split falls on start or end
         if split == self.start:
-            return None
+            return Signal()
         elif split == self.end:
             if inplace:
                 return self
@@ -309,11 +374,14 @@ class Signal:
         If *inplace* is false, the newer part is a new signal object.
         If *inplace* is true, the newer part is put into the *self* signal. 
         If *split* is not inside the original signal domain, no split
-        occours, None is returned. """
+        occours, a void signal is returned. """
 
-        # if split outside signal domain, return None.
-        if split < self.start or self.end < split:
-            return None
+        # if split outside signal domain, return void.
+        if not self or split < self.start or self.end < split:
+            if inplace:
+                return self
+            else:
+                return self.clone()
 
         # if split falls on start or end
         if split == self.start:
@@ -322,7 +390,7 @@ class Signal:
             else:
                 return self.clone()
         elif split == self.end:
-            return None
+            return Signal()
 
         # search split point
         level, split_pos = self.level(split)
@@ -348,16 +416,21 @@ class Signal:
         a new signal object is returned. If *inplace* is true, the join
         result is put into *self* and *self* is returned. Signals with
         different levels at *self* end and at *other* start cannot be joined
-        (join returns None). """
+        (join return a void signal). """
 
-        # if other is empty, no append.
+        # if other is void, no append.
         if not other:
-            return self
+            if inplace:
+                return self
+            else:
+                return self.clone()
 
-        # if self is empty, copy other into self.
+        # if self is void, return other or copy of it.
         if not self:
-            other.clone_into(self)
-            return other
+            if inplace:
+                return other.clone_into(self)
+            else:
+               return other.clone()
 
         # check for non overlap
         assert self.end <= other.start, \
@@ -392,16 +465,21 @@ class Signal:
         integer times of period, until it falls into the signal domain.
         If *origin* is none, it is set to self start time by default.
         If *origin* is after the signal end, no chop occours,
-        an empty list is returned. """
+        an empty list is returned.
+        If *self* is void, return an empty chop list. """
+
+        # if self is void, return an empty chop list.
+        if not self:
+            return []
 
         # if not defined, set origin default.
         org = origin
-        if not origin:
+        if origin is None:
               org = self.start
 
-        # if origin after signal end, return an empty list.
-        if self.end <= origin:
-            return []
+        # if origin after signal end, return signal copy.
+        if self.end <= org:
+            return [self.clone()]
 
         # preserve original signal from internal manipulations
         signal = self.clone()
@@ -420,16 +498,11 @@ class Signal:
         # for each chop time, chop signal until max_chops is reached or the
         # signal end is reached.
         for c in range(1,max_chops):
-            chop = signal.split(split,inplace=True)
-            if chop:
-                chops.append(chop[0])
-                split += period
-            else:
+            older, newer = signal.split(split,inplace=True)
+            chops.append(older)
+            if self.end <= split:
                 break
-
-        # if last split beyond signal end, get the residual part. 
-        if split > self.end:
-            chops.append(signal)
+            split += period
 
         return chops
 
@@ -438,6 +511,10 @@ class Signal:
         """ Add a gaussian jitter to the change times of *self* signal object
         with the given standard deviation *stddev* and zero mean.
         Signal start and end times are unchanged. """
+
+        # void is jitter invariant
+        if not self:
+            return
 
         # if not edges, return
         if not self.edges:
@@ -472,7 +549,7 @@ class Signal:
     def __add__(self,other):
         """ Concatenate (join) other to self. """
 
-        return self.join(other)
+        return self.join(other,inplace=False)
 
 
     def __len__(self):
@@ -482,7 +559,7 @@ class Signal:
 
 
     def __nonzero__(self):
-        """ Return true if the signal is not empty, return false otherwise. """
+        """ Return true if the signal is not void, return false otherwise. """
 
         return not self.start is None
 
@@ -496,10 +573,10 @@ class Signal:
             if signal_a == signal_b:
                 print 'signal a and b are equal' """
 
-        if not self is None and not other is None:
+        if self and other:
             return self.__dict__ == other.__dict__
         else:
-            return self is other
+            return not self and not other
 
 
     def __ne__(self,other):
@@ -511,10 +588,10 @@ class Signal:
             if signal_a != signal_b:
                 print 'signal a and b are different'"""
 
-        if not self is None and not other is None:
+        if self and other:
             return self.__dict__ != other.__dict__
         else:
-            return not self is other
+            return self or other
 
 
     def _intersect(self,other):
@@ -535,8 +612,8 @@ class Signal:
         if start >= end:
             return None
 
-        # find index of first edge after start and index of last edge before end.
-        # If no edges in start-end range, set indexes to 0.
+        # find index of first edge after start and index of last edge before
+        # end. If no edges in start-end range, set indexes to 0.
         
         for ia_start in range(len(self)):
             if self.edges[ia_start] < start:
@@ -578,20 +655,20 @@ class Signal:
 
         # if one or both operand is none, return none as result.
         if not self or not other:
-            return None
+            return Signal()
 
         # compute A and B time intersection paramenters.
         # If no intersection, return none.
         intersection = self._intersect(other)
         if not intersection:
-            return None
+            return Signal()
         start,end,ia_start,ia_end,slevel_a,ib_start,ib_end,slevel_b = \
             intersection
 
         # optimize result computation when both self and other are constant
         # if self and other are constant, return a constant signal.
         if len(self) < 1 and len(other) < 1:
-            return Signal(start,[],end,slevel=operator(self.slevel,other.slevel))
+           return Signal(start,[],end,slevel=operator(self.slevel,other.slevel))
         
         # optimize result computation when self or other is constant
         if len(self) < 1 and not (operator(1,0) ^ self.slevel):
@@ -689,13 +766,13 @@ class Signal:
 
         # if one or both operand is none, return none as result.
         if not self or not other:
-            return None
+            return Signal()
 
         # compute A and B time intersection paramenters.
         # If no intersection, return none.
         intersection = self._intersect(other)
         if not intersection:
-            return None
+            return Signal()
         start,end,ia_start,ia_end,slevel_a,ib_start,ib_end,slevel_b = \
             intersection
 
@@ -737,6 +814,10 @@ class Signal:
         else:
             sig = self.clone()
 
+        # void is invert invariant
+        if not self:
+            return sig
+        
         # apply inversion
         sig.slevel = not sig.slevel
 
@@ -749,7 +830,11 @@ class Signal:
         Output can be absolute (*normalize=False*) or can be normalized
         (*normalize=True*): absolute integral averaged over the whole signal
         domain. The summation is operated on the signal domain only.
-         """
+        If *self* is void, return none. """
+
+        # if self is void, return none.
+        if not self:
+            return None
 
         # do summation between first and last signal edges
         edges_int = 0
@@ -789,6 +874,10 @@ class Signal:
         the number of steps is set automatically to the maximum extent giving
         a non empty intersection among *self* and *other*. The same holds for
         *step_right*. """
+
+        # if at least one signal is void, return empty lists.
+        if not self or not other:
+            return [],[]
 
         # simplify variables access
         sig_a = self.clone()
@@ -854,6 +943,10 @@ class Signal:
         """ Plot signal *self* as square wave. Requires Matplotlib.
         *\*args* and *\**kargs* are passed on to matplotlib functions."""
 
+        # void is no plot
+        if not self:
+            return
+
         from matplotlib.pyplot import plot, ylim, yticks
 
         # generate signal levels
@@ -884,10 +977,9 @@ class Signal:
 
         self.append(other)
 
-        # if self elapse below allowed max, return an empty discarded signal
         # and the "appendend" self.
         if self.elapse() <= elapse:
-            return (None,self)
+            return (Signal(),self)
 
         # compute shift to be applied, if any.
         shift = (int((self.elapse() - elapse) / buf_step) + 1) * buf_step
@@ -901,7 +993,74 @@ class Signal:
 
 #### functions
 
-def bin2pwm(bincode,period,elapse_0,elapse_1,active=1,origin=0,tscale=1.):
+def code2mod(code,symbols,origin=0,tscale=1.):
+    """ Modulate a code sequence into a modulation signal in BTS format.
+    For each number in code, the symbol in symbols with index equal to number is
+    appended to the modulation signal. 
+    Return a Signal class object.
+    *code* is list of integer.
+    *symbols* is a list of signal objects, one for each coding symbol.
+    *origin* is the start time of the first coded symbol. """
+
+    # modulate all code items
+    mod = symbols[code[0]].shift(origin)
+    for number in code[1:]:
+        symbol = symbols[number]
+        mod.join(symbol.shift(mod.end-symbol.start),inplace=True)
+
+    return mod
+
+
+def mod2code(mod,symbols,mask=None,origin=None,tscale=1.):
+    """ Demodulate a modulation signal in BTS format by maximal correlation
+    symbol estimation.
+    Return the demodulated code sequence (list of int), the corresponding
+    normalized correlation, list of float) of all symbols and the time where
+    the demodulation ends.
+    *symbols* is a list of signal objects, one for each coding symbol.
+    *mask* is a signal objects.
+    Symbol correlation is computed only where mask = 1.
+    *origin* is the start time of the first coded symbol. If not defined, it
+    is set to start time of *mod*.
+    All symbols must have the same elapse time that is the symbol period.
+    The same holds for mask. """
+
+    # symbol period
+    period = symbols[0].elapse()
+
+    # if origin not defined, set default value
+    if origin is None:
+        origin = mod.start
+
+    # chop signal, if last chop hits signal end, discard it (no full period)
+    chops = mod.chop(period,origin)
+
+    # for each symbol period
+    code = []
+    corr = []
+    corrs = []
+    for chop in chops:
+        chop.shift(-chop.start,inplace=True)
+        cor = []
+        # correlate each symbol with current period
+        if mask:
+            for symbol in symbols:
+                cor.append((chop^symbol&mask).integral(level=0,normalize=True))
+        else:
+            for symbol in symbols:
+                cor.append((chop ^ symbol).integral(level=0,normalize=True))
+        corrs.append(cor)
+        # search symbol with highest correlation
+        cors = zip(cor,range(len(symbols)))
+        cors.sort()
+        cor, cod = cors[-1]
+        code.append(cod)
+        corr.append(cor)
+        
+    return code,corr,corrs
+
+
+def bin2pwm(bincode,elapse_0,elapse_1,period,active=1,origin=0,tscale=1.):
     """ Convert a binary code into a pulse width modulation signal in
     BTS format. Return a Signal class object. *bincode* is a tuple or a
     list of tuples: (*bit_length*, *bits*). *bit_length* is an integer
@@ -916,13 +1075,11 @@ def bin2pwm(bincode,period,elapse_0,elapse_1,active=1,origin=0,tscale=1.):
     if type(bincode) != list:
         bincode = [bincode]
 
-    # allocate pwm signal
-    pwm = Signal(slevel=~active&1,tscale=tscale)
-
     # set conventional start
-    pwm.start = origin
+    start = origin
 
     # convert a tuple at a time
+    edges = []
     for bit_num, code in bincode:
         # convert bit by bit of current tuple
         end = bit_num * period + origin
@@ -933,20 +1090,22 @@ def bin2pwm(bincode,period,elapse_0,elapse_1,active=1,origin=0,tscale=1.):
             else:
                 t1 = t0 + elapse_0
             code >>= 1
-            pwm.edges.append(t0)
-            pwm.edges.append(t1)
+            edges.append(t0)
+            edges.append(t1)
             t0 = t0 + period 
 
         # next tuple start at current tuple end time
         origin = end
 
-    # end signal at the end of last period
-    pwm.end = end
+    # if no chars, return a void signal.
+    if start == end:
+        return Signal()
+    # otherwise, return signal.
+    else:
+        return Signal(start,edges,end,~active&1,tscale)
 
-    return pwm
 
-
-def pwm2bin(pwm,elapse_0,elapse_1,active=1,origin=0,period=None,threshold=0.2):
+def pwm2bin(pwm,elapse_0,elapse_1,period=None,active=1,origin=0,threshold=0.2):
     """ Convert a pulse width modulation signal in BTS format to binary code.
     Return a tuple: see *bincode* in **bin2pwm**. *pwm* is the signal to
     decode. For the other arguments see **bin2pwm**. If *period* is not
@@ -994,7 +1153,8 @@ def pwm2bin(pwm,elapse_0,elapse_1,active=1,origin=0,period=None,threshold=0.2):
         for chop in chops[-2::-1]:
             code <<= 1
             error <<= 1
-            chop.shift(-chop.edges[0],inplace=True)
+            if len(chop) > 0:
+                chop.shift(-chop.edges[0],inplace=True)
             corr_0 = (chop ^ model_0 & mask).integral(level=0,normalize=True)
             corr_1 = (chop ^ model_1 & mask).integral(level=0,normalize=True)
             if abs(corr_0 - corr_1) > threshold:
@@ -1010,6 +1170,11 @@ def pwm2bin(pwm,elapse_0,elapse_1,active=1,origin=0,period=None,threshold=0.2):
 
     ## if not period, convert by pulse elapse time
     else:
+
+        # if self is void, return null code.
+        if not pwm:
+            return 0, 0
+
         code = 0
         threshold = (elapse_0 + elapse_1) / 2.
         one_is_above = elapse_0 < elapse_1
@@ -1042,7 +1207,7 @@ def serial_tx(chars,times,char_bits=8,parity='off',stop_bits=2,baud=50,
     active high. """
 
     # init serial line signal 
-    sline = Signal(times[0]-0.1/baud,[],None,slevel=0,tscale=tscale)
+    sline = Signal(times[0],[],times[-1],slevel=0,tscale=tscale)
 
     # bit period
     bit_time = tscale / baud
@@ -1124,6 +1289,10 @@ def serial_rx(sline,char_bits=8,parity='off',stop_bits=2,baud=50):
     received. For the keyword arguments see **serial_tx**. The serial line
     pulses are sampled at the given baud rate like a real asynchronous
     serial interface. """
+
+    # if sline is void, return no rx chars
+    if not sline:
+        return [],[],[]
 
     # constant
     char_mask = [0,0,0,0,0,0x10,0x20,0x40,0x80]
@@ -1250,20 +1419,16 @@ def noise(origin,end,period_mean=1,period_stddev=1,
     standard deviation of the pulse width at 1 level. *active* is the
     active pulse level, can be 0,1,'random'. """
 
-    # allocate noise signal
-    noise = Signal()
-
     # if required, set a random start level. Else default to level 0.
     if active == 'random':
-        noise.slevel = random.randint(0,1)
+        slevel = random.randint(0,1)
     elif active == 0:
-        noise.slevel = 1
+        slevel = 1
     else:
-        noise.slevel = 0
+        slevel = 0
 
-    # set start just before origin and end
-    noise.start = origin - period_mean / 100.
-    noise.end = end
+    # set start and end
+    start = origin
 
     # level 0 mean and stdev from frequency and pulse width moments
     pause_mean = period_mean - width_mean
@@ -1273,20 +1438,21 @@ def noise(origin,end,period_mean=1,period_stddev=1,
     last_pause_end = \
             abs(random.gauss(pause_mean,pause_stddev)) + origin
     if last_pause_end > end:
-        return noise
+        return Signal(start,[],end,slevel)
 
     # make noise pulses
+    edges = []
     while True:
         # not really true gauss: negative branch reflected over positive.
         width = abs(random.gauss(width_mean,width_stddev))
         pause = abs(random.gauss(pause_mean,pause_stddev))
         if last_pause_end + width + pause > end:
             break
-        noise.edges.append(last_pause_end)
-        noise.edges.append(last_pause_end + width)
+        edges.append(last_pause_end)
+        edges.append(last_pause_end + width)
         last_pause_end = last_pause_end + width + pause
 
-    return noise
+    return Signal(start,edges,end,slevel)
 
 
 def square(origin,end,period,width,active=1):
@@ -1295,24 +1461,28 @@ def square(origin,end,period,width,active=1):
     trailing edge. *end* is the signal end time. *period* is the pulse
     period. *width* is the pulse width at active level. """
 
-    # allocate signal
-    square = Signal()
-
     # set start level according to active level
-    square.slevel = ~ active & 1
+    slevel = ~ active & 1
 
     # set start just before origin
-    square.start= origin - period / 100.
+    start = origin
 
     # insert first pause interval end
+    edges = []
     while origin < end:
-        square.edges.append(origin)
-        square.edges.append(origin + width)
+        edges.append(origin)
+        edges.append(origin + width)
         origin = origin + period
 
-    # set end
-    square.end = end
+    return Signal(start,edges,end,slevel)
 
-    return square
+
+def test():
+    """ Return a signal object with a test signal. The signal has a
+    sequence of primes as edges timing. """
+
+    return Signal(-1,
+      [0,1,2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61],
+      62,0,1.)
 
 #### END

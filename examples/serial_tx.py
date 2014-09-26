@@ -59,8 +59,11 @@ pl.text((c + 3.5) * bit_time,0.5,'E',ha='center')
 pl.text((c + 4.5) * bit_time,0.5,'E',ha='center')
 pl.grid()
 
+# save plot to file
 fig1.savefig('serial_tx.png',format='png')
 
-pl.show()
+
+if __name__ == '__main__':
+    pl.show()
 
 #### END

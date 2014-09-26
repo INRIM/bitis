@@ -36,7 +36,7 @@ import matplotlib.pyplot as pl
 random.seed(1)
 
 # generate the original signal: square wave, 50 cycles @1Hz, 50% duty cycle.
-original = bt.square(0,50,1,0.5)
+original = bt.square(0.,50.,1.,0.5)
 
 # add jitter to original signal
 jittered = original.clone()
@@ -81,8 +81,11 @@ pl.ylabel('correlation')
 pl.xlabel('lockin phase')
 pl.subplots_adjust(hspace=0.4)
 
+# save plot to file
 fig1.savefig('lockin.png',format='png')
 
-pl.show()
+
+if __name__ == '__main__':
+    pl.show()
 
 #### END

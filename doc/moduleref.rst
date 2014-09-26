@@ -22,7 +22,10 @@ Functions
 .. currentmodule:: bitis
 .. autofunction:: bin2pwm
 .. autofunction:: pwm2bin
+.. autofunction:: code2mod
+.. autofunction:: mod2code
 .. autofunction:: serial_tx
 .. autofunction:: serial_rx
 .. autofunction:: noise
 .. autofunction:: square
+.. autofunction:: test

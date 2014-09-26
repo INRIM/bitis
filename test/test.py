@@ -42,8 +42,7 @@ class TestBitis(unittest.TestCase):
 
         # test signal instance
         self.empty = bt.Signal()
-        self.test = bt.Signal()
-        self.test.test()
+        self.test = bt.test()
         self.testing = self.test.clone()
 
         # test signals: a signal and its shifted copies.
@@ -96,8 +95,8 @@ class TestBitis(unittest.TestCase):
         """ Test in place signal edge reversing. """
 
         # reverse 
-        self.testing.reverse()
-        self.testing.reverse()
+        self.testing.reverse(inplace=True)
+        self.testing.reverse(inplace=True)
 
         # compare expected signal and testing result
         self.assertEqual(self.test,self.testing)
@@ -297,7 +296,7 @@ class TestBitis(unittest.TestCase):
         self.assertEqual(expected,testing)
 
         testing = self.sig0 & self.sig7
-        expected = None
+        expected = bt.Signal()
         self.assertEqual(expected,testing)
 
     
@@ -360,7 +359,7 @@ class TestBitis(unittest.TestCase):
         self.assertEqual(expected,testing)
 
         testing = self.sig0 ^ self.sig7
-        expected = None
+        expected = bt.Signal()
         self.assertEqual(expected,testing)
 
 
@@ -435,7 +434,7 @@ class TestBitis(unittest.TestCase):
         # make random sequence repeteable
         random.seed(1)
 
-        # test 100 random binary codes sequences
+        # teist 100 random binary codes sequences
         for s in range(100):
 
             # build random input data
@@ -456,7 +455,7 @@ class TestBitis(unittest.TestCase):
             code_in = (code_in[0],code_in[1] & mask)
 
             # from codes to pulses and back again
-            pwm = bt.bin2pwm(code_in,period,elapse_0,elapse_1,active,origin)
+            pwm = bt.bin2pwm(code_in,elapse_0,elapse_1,period,active,origin)
             code_out = bt.pwm2bin(pwm,elapse_0,elapse_1)
 
             # compare in and out codes
@@ -493,9 +492,8 @@ class TestBitis(unittest.TestCase):
             code_in = (code_in[0],code_in[1] & mask)
 
             # from codes to pulses and back again
-            pwm = bt.bin2pwm(code_in,period,elapse_0,elapse_1,active,origin)
-            code_out, error = bt.pwm2bin(pwm,elapse_0,elapse_1,active,
-                period=period)
+            pwm = bt.bin2pwm(code_in,elapse_0,elapse_1,period,active,origin)
+            code_out, error = bt.pwm2bin(pwm,elapse_0,elapse_1,period,active)
 
             # compare in and out codes
             self.assertEqual(0,error)
@@ -541,6 +539,46 @@ class TestBitis(unittest.TestCase):
             self.assertTrue(all([s == 0 for s in status]))
 
 
+    def test_code_modem(self):
+        """ Simulate encode and decode with symbol modulation and correlation.
+        Test the equality of the original code and the demodulated one. """
+
+        # make random sequence repeteable
+        random.seed(1)
+
+        # make whole test 20 time
+        for j in range(20):
+
+            # build random symbols
+            start = 0.
+            end =  4.
+            period_mean = (end - start) / 100.
+            width_mean = 0.2  * period_mean
+            symbols_num = random.randint(2,10)
+            symbols = []
+            for i in range(symbols_num):
+                symbol = bt.noise(start,end,period_mean=period_mean,
+                    width_mean=width_mean)
+                # ensure same start and end levels equal to 0
+                while symbol.slevel or symbol.slevel != symbol.end_level():
+                    symbol = bt.noise(start,end,period_mean=period_mean,
+                        width_mean=width_mean)
+                symbols.append(symbol)
+
+            # build random code
+            code_len = random.randint(2,20)
+            code = []
+            for i in range(code_len):
+                code.append(random.randint(0,symbols_num-1))
+
+            # modulate and demodulate
+            mod = bt.code2mod(code,symbols)
+            decode, corr, corrs = bt.mod2code(mod,symbols)
+
+            # compare in and out chars, theirs timings and test for ok status
+            self.assertEqual(code,decode)
+
+
     def test_stream(self):
         """ Divide a signal in several chunks by subsequent splits. Pass them
         to a stream signal. Save stream excess into an accumulator. Compare
@@ -551,22 +589,24 @@ class TestBitis(unittest.TestCase):
         random.seed(1)
 
         # create signals
-        original = bt.noise(0,200)
+        start = 0
+        end =200 
+        original = bt.noise(start,end)
         stream = bt.Signal()
         accumulator = bt.Signal()
 
         # split original several times, pass first splited part to a stream
         # signal, append stream excess to an accumulator signal.
         # At each step, check if original is equal to part b + stream + acc.
-        start = original.start
         tosplit = original
         for i in range(10):
-            split = random.uniform(start,200.)
-            start = split
+            start = tosplit.start
+            split = random.uniform(start,end)
             part_a, part_b = tosplit.split(split)
             tosplit = part_b
             excess, stream = stream.stream(part_a,30)
             accumulator.append(excess)
+            result = accumulator + stream + part_b
             self.assertEqual(original,accumulator + stream + part_b)
 
 

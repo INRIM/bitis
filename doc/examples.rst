@@ -40,16 +40,9 @@ and 50 baud tranmitting speed.
     :language: python
     :lines: 30-
 
-This is the plotting result. The signal is represented as exiting from a UART
-device at TTL level. This kind of signal is logically inverted with respect to
-a RS-232 signal. The x axis units are seconds. 
+This is the plotting result. The x axis units are milliseconds.
 
 .. image:: ../examples/serial_tx.png
-
-* S: start bit.
-* 0/1: character bits.
-* P: parity bit.
-* E: stop bits.
 
 Phase lockin
 ------------
@@ -70,3 +63,37 @@ disturbed signal and the correlation among them, correlation that reaches a
 maximum when the original has that same phase of the disturbed original. 
 
 .. image:: ../examples/lockin.png
+
+Modulation
+----------
+
+The following example shows the generation of a modulated signal, given a
+random code and a set of symbols. The modulated signal is obtained concatenating
+in time the symbol corresponding to a code value.
+Then the modulated signal is demodulated by maximal correlation symbol
+estimation. As a byproduct, the signal/symbols correlation matrix is obtained
+as shown below.
+The example does not take into account any signal alteration by noise.
+
+.. literalinclude:: ../examples/modem.py 
+    :linenos:
+    :language: python
+    :lines: 30-
+
+The plot shows the set of four random symbols. Each symbol has an elapse time
+of 4 seconds.
+
+.. image:: ../examples/modem1.png
+
+The plot shows the modulated signal with the boundaries between the symbols.
+For each symbol time, the code value is shown.
+
+.. image:: ../examples/modem2.png
+
+The plot shows the symbol correlation matrix of the modulated signal. The
+correlation value reaches the maximum where the correlating symbol is equal to
+the modulating symbol. For each code time, the symbol with maximum
+correlation (+1) is marked in red.
+
+
+.. image:: ../examples/modem3.png

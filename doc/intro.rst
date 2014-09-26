@@ -54,6 +54,7 @@ already be installed.  The latest release is recommended.  Python is
 available from http://www.python.org/.
 
 When the Signal plotting method is used also `Matplotlib`_ is required.
+This also requires all dependencies of `Matplotlib`_, like `NumPy`_, etc.
 
 
 Installation
@@ -67,3 +68,4 @@ Installation
 
 
 .. _Matplotlib: http://matplotlib.org
+.. _NumPy: http://numpy.org

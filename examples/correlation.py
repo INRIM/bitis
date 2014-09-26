@@ -38,7 +38,6 @@ random.seed(1)
 # create random signals
 in_a = bt.noise(-2,12,period_mean=6,width_mean=3)
 in_b = bt.noise(-2,12,period_mean=4,width_mean=2)
-print 'in_a,in_b\n',in_a,in_b
 
 # compute correlation
 corr_ab = in_a.correlation(in_b,step_size=0.1)
@@ -70,9 +69,11 @@ pl.ylabel('correlation a b')
 pl.xlabel('signal a shift')
 pl.subplots_adjust(hspace=0.4)
 
-# save figure to file
+# save plot to file
 fig1.savefig('correlation.png',format='png',)
 
-pl.show()
+
+if __name__ == '__main__':
+    pl.show()
 
 #### END
