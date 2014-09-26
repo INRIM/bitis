@@ -21,7 +21,7 @@ The *BTS* format is composed by 5 signal elements.
 **Start time**
 
 The start time of the signal. Before this time, the signal is not defined.
-When it is none, the signal is considered empty or equivalent to none.
+When it is none, the signal is considered void.
 
 **Edges times**
 
@@ -37,7 +37,7 @@ The last element must be lower or equal to the end time.
 
 The end time of the signal. After this time, the signal is not defined.
 The end time must be greater than the start time.
-May be none.
+May be none when start is none.
 
 **Start level**
 

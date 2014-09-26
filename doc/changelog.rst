@@ -1,8 +1,60 @@
 Changes
 *******
 
+Release 0.10.0 (released 26-Sep-2014)
+=====================================
+
+Features added
+--------------
+
+* Method validate: a consistency checker for signal attributes.
+* Method code2mod: code to symbols signal modulator.
+* Method mod2code: demodulator by maximum correlation symbol estimation.
+* Example "modulation".
+* New method end_level: return the ending level of a signal.
+* New method older: return the older part of a signal with respect to a given
+  time.
+* New method newer: return the newer part of a signal with respect to a given
+  time.
+
+Changes
+-------
+
+* Method test changed to function.
+* Signal instancing now validate signal attributes.
+* Now, instancing of Signal() generates a void signal.
+* Changed return of method split when split time falls outside signal domain.
+* Now method serial_tx generate a serial signal with start=origin.
+
+Bugs fixed
+----------
+
+* Method chop: wrong chop when split falls on signal end.
+* Method __add__: added inplace=false to join call.
+* Method level: wrong level returned.
+* Method join: changed start and end calls with corresponding attributes.
+* Method serial_rx: corrected wrong char start detection and level tests.
+* Method noise: missing return argument, the noise signal itself.
+* Method append: now update correctly the end time of the result.
+
+Documentation
+-------------
+
+* Added the rules of BTS format.
+
+Internals
+---------
+
+* Rewrite of void signal handling through all methods and functions.
+* New test for methods code2mod and mod2code.
+* Refactored method split with method level.
+* Added random inplace to spit/join test.
+* New test for methods older and newer.
+* Method append: now implemented with a call to split.
+
+
 Release 0.9.0 (released 10-Sep-2014)
-===================================
+====================================
 
 Features added
 --------------
