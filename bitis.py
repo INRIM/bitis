@@ -199,10 +199,10 @@ class Signal:
 
     def elapse(self):
         """ Ruturn the signal elapse time: end time - start time.
-        If *self* is void, return None."""
+        If *self* is void, return zero."""
 
         if not self:
-            return None
+            return 0.
 
         return self.end - self.start
 
@@ -1206,8 +1206,8 @@ def serial_tx(chars,times,char_bits=8,parity='off',stop_bits=2,baud=50,
     line speed, any positive value is allowed. The serial line is assumed
     active high. """
 
-    # init serial line signal 
-    sline = Signal(times[0],[],times[-1],slevel=0,tscale=tscale)
+    # init serial line signal
+    sline = Signal(times[0],[],times[0]+0.001,slevel=0,tscale=tscale)
 
     # bit period
     bit_time = tscale / baud
@@ -1322,6 +1322,7 @@ def serial_rx(sline,char_bits=8,parity='off',stop_bits=2,baud=50):
 
         # sample start bit level and first edge after it
         level, tpos = sline.level(sample_time,tpos)
+
         # if start bit sampling goes beyond the last edge, terminate.
         if level is None:   
             return chars, timings, status
@@ -1332,7 +1333,7 @@ def serial_rx(sline,char_bits=8,parity='off',stop_bits=2,baud=50):
             try:
                 start = sline.edges[tpos]
             except:
-                pass 
+                start += bit_time
             continue
 
         # presume OK for rx char status
@@ -1395,8 +1396,6 @@ def serial_rx(sline,char_bits=8,parity='off',stop_bits=2,baud=50):
 
         # move start of next char at stop bits end.
         start = sample_time + 0.5 * bit_time
-
-    return chars, timings, status
 
 
 def __parity(value):
