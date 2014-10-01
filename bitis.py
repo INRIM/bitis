@@ -37,11 +37,27 @@ import sys              # sys constants
 
 # define global variables
 
-__version__ = '0.10.0'
+__version__ = '0.11.0'
 __author__ = 'Fabrizio Pollastri <f.pollastri@inrim.it>'
 
 
 #### classes
+
+# unicode box drawing characters
+LIGHT_HORIZONTAL = u'\u2500'
+LIGHT_DOWN_AND_RIGHT = u'\u250c'
+DOWN_HEAVY_AND_RIGHT_LIGHT = u'\u250e'
+LIGHT_DOWN_AND_LEFT = u'\u2510'
+DOWN_HEAVY_AND_LEFT_LIGHT = u'\u2512'
+LIGHT_UP_AND_RIGHT = u'\u2514'
+UP_HEAVY_AND_RIGHT_LIGHT = u'\u2516'
+LIGHT_UP_AND_LEFT = u'\u2518'
+UP_HEAVY_AND_LEFT_LIGHT = u'\u251a'
+DOWN_HEAVY_HORIZONTAL_LIGHT = u'\u2530'
+UP_HEAVY_AND_HORIZONTAL_LIGHT = u'\u2538'
+HEAVY_UP = u'\u2579'
+HEAVY_DOWN = u'\u257b'
+
 
 class Signal:
     """
@@ -163,7 +179,7 @@ class Signal:
                 tpos += 1
         except:
             if time > self.end:
-                return None, None
+                return None, len(self)
             else:
                 return len(self) & 1 ^ self.slevel, len(self)
         return tpos & 1 ^ self.slevel, tpos
@@ -940,7 +956,7 @@ class Signal:
 
 
     def plot(self,*args,**kargs):
-        """ Plot signal *self* as square wave. Requires Matplotlib.
+        """ Graphic plot of signal *self* as square wave. Requires Matplotlib.
         *\*args* and *\**kargs* are passed on to matplotlib functions."""
 
         # void is no plot
@@ -967,6 +983,146 @@ class Signal:
             plot([self.start]+self.edges+[self.end],levels,*args,**kargs)
         else:
             plot([self.start]+self.edges+[self.end],levels,**kargs)
+
+
+    def plotchar(self,charnum,origin=None,end=None,period=None,max_flat=100):
+        """ Semigraphic plot of signal *self* with unicode line drawing
+        characters (U+25xx).
+        Return two strings utf-8 encoded of the same length: the top and the
+        bottom rendering rows..
+        *charnum* is the maximum length of the string of the rendering
+        characters.
+        *origin* is the rendering start time. If None, *start* is set to the
+        signal start time.
+        *end* is the rendering end time. If None, *end* is set to the
+        signal end time.
+        *period* is the elapse time covered by two consecutive chars. If
+        None, *period* is set to (end-start)/charnum . If *period* is set,
+        *end* is ignored. Require locale setting.
+        *max_flat* is the maximum number of consecutive horizontal line
+        characters. When reached, no more horizontal chars are added and
+        a lower case 'x' char is put in the middle of this sequence
+        to mark the character suppression. """
+
+        # set start and end times
+        if origin is None:
+            origin = self.start
+        if end is None:
+            end = self.end
+       
+        # set period
+        if period is None:
+            period = (end - origin) / float(charnum)
+
+        # initial level and edge number
+        ilevel, iedge = self.level(origin,0)
+
+        # rendering chars with light double dash horizontal: no signal.
+        if ilevel is None:
+            return [], []
+
+        # for each rendering char, examine input and output levels, examine
+        # how many edges fall into char time elapse and set proper rendering.
+        topchars = []
+        botchars = []
+        hcount = 0
+        for o in range(charnum):
+            origin += period
+            olevel, oedge = self.level(origin,iedge)
+            if olevel is None:
+                if origin - period < self.end:
+                    origin = self.end
+                else:
+                    break
+            diffedge = oedge - iedge
+            if ilevel:
+                if olevel:
+                    # thick top tee: in 1, out 1, edges => 1 . 
+                    if diffedge:
+                        topchar = DOWN_HEAVY_HORIZONTAL_LIGHT
+                        botchar = HEAVY_UP
+                    # top line: in 1, out 1, edges = 0
+                    else:
+                        topchar = LIGHT_HORIZONTAL
+                        botchar = ' '
+                else:
+                    # falling edge: in 1, out 0, edges = 1 .
+                    if diffedge == 1:
+                        topchar = LIGHT_DOWN_AND_LEFT
+                        botchar = LIGHT_UP_AND_RIGHT
+                    # thick falling edge: in 1, out 0, edges > 1 .
+                    else:
+                        topchar = DOWN_HEAVY_AND_LEFT_LIGHT
+                        botchar = UP_HEAVY_AND_RIGHT_LIGHT
+            else:
+                if olevel:
+                    # raising edge: in 0, out 1, edges = 1 .
+                    if diffedge == 1:
+                        topchar = LIGHT_DOWN_AND_RIGHT
+                        botchar = LIGHT_UP_AND_LEFT
+                    # thick falling edge: in 0, out 1, edges > 1 .
+                    else:
+                        topchar = DOWN_HEAVY_AND_RIGHT_LIGHT
+                        botchar = UP_HEAVY_AND_LEFT_LIGHT
+                else:
+                    # thick bottom tee: in 0, out 0, edges => 1 . 
+                    if diffedge:
+                        topchar = HEAVY_DOWN
+                        botchar = UP_HEAVY_AND_HORIZONTAL_LIGHT
+                    # bottom line: in 1, out 1, edges = 0
+                    else:
+                        topchar = ' '
+                        botchar = LIGHT_HORIZONTAL
+
+            # going horizontal: count only chars, do not append them.
+            if topchar == LIGHT_HORIZONTAL or botchar == LIGHT_HORIZONTAL:
+                hcount += 1
+            else:
+                # if an horizontal line is terminated, append it.
+                if hcount:
+                    # set top and bot fill chars
+                    if topchar == DOWN_HEAVY_HORIZONTAL_LIGHT or \
+                        topchar == LIGHT_DOWN_AND_LEFT or \
+                        topchar == DOWN_HEAVY_AND_LEFT_LIGHT:
+                        topchr = LIGHT_HORIZONTAL
+                        botchr = ' '
+                        topmark = 'x'
+                        botmark = ' '
+                    else:
+                        topchr = ' '
+                        botchr = LIGHT_HORIZONTAL
+                        topmark = ' '
+                        botmark = 'x'
+                    # if required, do horizontal line chars suppression
+                    if hcount > max_flat:
+                        # number of hline chars at left and right of marker
+                        hleft = max_flat - int((max_flat - 1) / 2) - 1
+                        hcount = max_flat - hleft - 1
+                        # fill chars before marker
+                        for i in range(hleft):
+                            topchars.append(topchr)
+                            botchars.append(botchr)
+                        # fill marker
+                        topchars.append(topmark)
+                        botchars.append(botmark)
+                    # fill all hline chars or after marker only
+                    for i in range(hcount):
+                           topchars.append(topchr)
+                           botchars.append(botchr)
+                    hcount = 0   
+                # append current not hline chars
+                topchars.append(topchar)
+                botchars.append(botchar)
+
+            # end of char time becomes start time at next char
+            ilevel = olevel
+            iedge = oedge
+
+        # convert char lists to encoded strings
+        topchars = ''.join(topchars).encode('utf-8')   
+        botchars = ''.join(botchars).encode('utf-8')   
+
+        return topchars, botchars
 
 
     def stream(self,other,elapse,buf_step=1.):

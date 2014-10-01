@@ -13,6 +13,45 @@ module.
     :language: python
     :lines: 30-
 
+Graphic and semigraphic plot
+----------------------------
+
+The following example shows the plotting capabilitites of methods *plot* and
+*plotchar*. The method *plot* uses the matplotlib to produce graphic drawing
+of the given signal as a square/rectangular wave. The x axis represents the
+time, the y axis represents the logical levels. The method *plotchar* uses
+the box line drawing characters from unicode for drawing the best approximation
+of a graphic representation of the given signal.
+Below there are two representations of the same test signal.
+
+.. literalinclude:: ../examples/plot.py
+    :linenos:
+    :language: python
+    :lines: 30-
+
+This is the graphic plotting result using *plot* method.
+
+.. image:: ../examples/plot.png
+
+This is the semigraphic plotting result using *plotchar* method. 
+The figure shows a sequence of plotting of the same test signal with increasing
+resolution. Resolution is the length of the plotting character string, it is
+printed at line beginning and spans from only one chararacter until a string 71 
+characters long.
+
+.. literalinclude:: ../examples/plot.txt
+    :linenos:
+
+When resolution is too low to represent all signal transition edges, *plotchar*
+puts an heavy vertical line as symbol of multiple edges.
+
+In this example, *plotchar* is called with the argument max_flat=4 . This means
+that a signal constant level elapsing more than 4 characters is compressed
+(in time) to be of length 4 characters. This characters suppression is marked
+by the 'x' chararacter that can be seen in the last four semigraphic plots.
+When this happens, it is important to keep in mind that the x axis time scale
+is no more uniform.
+
 Correlation Function
 --------------------
 
