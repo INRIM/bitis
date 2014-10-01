@@ -1,4 +1,4 @@
-#.!/usr/bin/python
+#!/usr/bin/python
 # .+
 # .context    : Binary Timed Signal Processing Processing Library
 # .title      : Bitis main module
@@ -989,7 +989,7 @@ class Signal:
         """ Semigraphic plot of signal *self* with unicode line drawing
         characters (U+25xx).
         Return two strings utf-8 encoded of the same length: the top and the
-        bottom rendering rows..
+        bottom rendering rows.
         *charnum* is the maximum length of the string of the rendering
         characters.
         *origin* is the rendering start time. If None, *start* is set to the
@@ -1002,7 +1002,7 @@ class Signal:
         *max_flat* is the maximum number of consecutive horizontal line
         characters. When reached, no more horizontal chars are added and
         a lower case 'x' char is put in the middle of this sequence
-        to mark the character suppression. """
+        to mark the character drop. """
 
         # set start and end times
         if origin is None:
@@ -1093,7 +1093,7 @@ class Signal:
                         botchr = LIGHT_HORIZONTAL
                         topmark = ' '
                         botmark = 'x'
-                    # if required, do horizontal line chars suppression
+                    # if required, do horizontal line chars drop
                     if hcount > max_flat:
                         # number of hline chars at left and right of marker
                         hleft = max_flat - int((max_flat - 1) / 2) - 1

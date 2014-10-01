@@ -47,7 +47,7 @@ puts an heavy vertical line as symbol of multiple edges.
 
 In this example, *plotchar* is called with the argument max_flat=4 . This means
 that a signal constant level elapsing more than 4 characters is compressed
-(in time) to be of length 4 characters. This characters suppression is marked
+(in time) to be of length 4 characters. This characters drop is marked
 by the 'x' chararacter that can be seen in the last four semigraphic plots.
 When this happens, it is important to keep in mind that the x axis time scale
 is no more uniform.

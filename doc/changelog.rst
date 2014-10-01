@@ -1,6 +1,33 @@
 Changes
 *******
 
+Release 0.11.0 (released 1-Oct-2014)
+=====================================
+
+Features added
+--------------
+
+* Method plotchar: semigraphic signal plot with line drawing characters.
+
+Changes
+-------
+
+* Method level: now return None, len(signal) when time is beyond signal end.
+* Method elapse: return zero when signal is void, before was none.
+
+Bugs fixed
+----------
+
+* Method serial_tx: returned void signal when chars had len == 1.
+* Method serial_rx: dead lock when last sample time was before end time and
+  after last ege time.
+
+Documentation
+-------------
+
+* Add example plot.
+
+
 Release 0.10.0 (released 26-Sep-2014)
 =====================================
 
