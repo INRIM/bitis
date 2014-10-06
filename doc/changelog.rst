@@ -1,6 +1,28 @@
 Changes
 *******
 
+Release 0.11.1 (released 6-Oct-2014)
+====================================
+
+Changes
+-------
+
+* Method plotchar: now argument max_flat deault is None, was 100 .
+
+Bugs fixed
+----------
+
+* Method level: now for time < start return (None,0) .
+* Method plotchar: last flat lost when signal end < plot end.
+* Method stream: now the newest part is self, was a new allocated signal.
+    
+Internals
+---------
+
+* Method plotchar refactored.
+* New test for methods level and plotchar.
+
+
 Release 0.11.0 (released 1-Oct-2014)
 =====================================
 
