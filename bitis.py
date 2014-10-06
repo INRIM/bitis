@@ -178,10 +178,11 @@ class Signal:
             while time > self.edges[tpos]:
                 tpos += 1
         except:
-            if time > self.end:
+            if time < self.start or self.end < time:
                 return None, len(self)
-            else:
-                return len(self) & 1 ^ self.slevel, len(self)
+            return len(self) & 1 ^ self.slevel, len(self)
+        if time < self.start:
+            return None, 0
         return tpos & 1 ^ self.slevel, tpos
 
 
@@ -985,7 +986,7 @@ class Signal:
             plot([self.start]+self.edges+[self.end],levels,**kargs)
 
 
-    def plotchar(self,charnum,origin=None,end=None,period=None,max_flat=100):
+    def plotchar(self,charnum,origin=None,end=None,period=None,max_flat=None):
         """ Semigraphic plot of signal *self* with unicode line drawing
         characters (U+25xx).
         Return two strings utf-8 encoded of the same length: the top and the
@@ -996,15 +997,15 @@ class Signal:
         signal start time.
         *end* is the rendering end time. If None, *end* is set to the
         signal end time.
-        *period* is the elapse time covered by two consecutive chars. If
+        *period* is the elapse time covered by one char. If
         None, *period* is set to (end-start)/charnum . If *period* is set,
         *end* is ignored. Require locale setting.
         *max_flat* is the maximum number of consecutive horizontal line
         characters. When reached, no more horizontal chars are added and
         a lower case 'x' char is put in the middle of this sequence
-        to mark the character drop. """
+        to mark the character drop. If None, compression is disbled. """
 
-        # set start and end times
+        # if not defined, set default start and end times
         if origin is None:
             origin = self.start
         if end is None:
@@ -1015,112 +1016,123 @@ class Signal:
             period = (end - origin) / float(charnum)
 
         # initial level and edge number
-        ilevel, iedge = self.level(origin,0)
-
-        # rendering chars with light double dash horizontal: no signal.
-        if ilevel is None:
-            return [], []
+        olevel, oedge = self.level(origin,0)
 
         # for each rendering char, examine input and output levels, examine
         # how many edges fall into char time elapse and set proper rendering.
         topchars = []
         botchars = []
-        hcount = 0
-        for o in range(charnum):
-            origin += period
-            olevel, oedge = self.level(origin,iedge)
-            if olevel is None:
-                if origin - period < self.end:
-                    origin = self.end
-                else:
-                    break
-            diffedge = oedge - iedge
-            if ilevel:
-                if olevel:
-                    # thick top tee: in 1, out 1, edges => 1 . 
-                    if diffedge:
-                        topchar = DOWN_HEAVY_HORIZONTAL_LIGHT
-                        botchar = HEAVY_UP
-                    # top line: in 1, out 1, edges = 0
-                    else:
-                        topchar = LIGHT_HORIZONTAL
-                        botchar = ' '
-                else:
-                    # falling edge: in 1, out 0, edges = 1 .
-                    if diffedge == 1:
-                        topchar = LIGHT_DOWN_AND_LEFT
-                        botchar = LIGHT_UP_AND_RIGHT
-                    # thick falling edge: in 1, out 0, edges > 1 .
-                    else:
-                        topchar = DOWN_HEAVY_AND_LEFT_LIGHT
-                        botchar = UP_HEAVY_AND_RIGHT_LIGHT
-            else:
-                if olevel:
-                    # raising edge: in 0, out 1, edges = 1 .
-                    if diffedge == 1:
-                        topchar = LIGHT_DOWN_AND_RIGHT
-                        botchar = LIGHT_UP_AND_LEFT
-                    # thick falling edge: in 0, out 1, edges > 1 .
-                    else:
-                        topchar = DOWN_HEAVY_AND_RIGHT_LIGHT
-                        botchar = UP_HEAVY_AND_LEFT_LIGHT
-                else:
-                    # thick bottom tee: in 0, out 0, edges => 1 . 
-                    if diffedge:
-                        topchar = HEAVY_DOWN
-                        botchar = UP_HEAVY_AND_HORIZONTAL_LIGHT
-                    # bottom line: in 1, out 1, edges = 0
-                    else:
-                        topchar = ' '
-                        botchar = LIGHT_HORIZONTAL
+        flat_count = 0
+        for c in range(charnum):
+            # end of char time becomes start time
+            ilevel = olevel
+            iedge = oedge
+            # origin to end of char
+            org = origin + (end - origin) * (c + 1) / float(charnum)
+            # signal level at end of char, edges number before end of char.
+            olevel, oedge = self.level(org,iedge)
+            # pad rending outside signal domain
+            if ilevel is None or olevel is None:
+                topchar = ' '
+                botchar = ' '
 
-            # going horizontal: count only chars, do not append them.
-            if topchar == LIGHT_HORIZONTAL or botchar == LIGHT_HORIZONTAL:
-                hcount += 1
+            # Compute top and bottom chars of current char position from
+            # signal levels at char position start time (ilevel), end time
+            # (olevel) and number of signal edges between this two times.
             else:
-                # if an horizontal line is terminated, append it.
-                if hcount:
-                    # set top and bot fill chars
-                    if topchar == DOWN_HEAVY_HORIZONTAL_LIGHT or \
-                        topchar == LIGHT_DOWN_AND_LEFT or \
-                        topchar == DOWN_HEAVY_AND_LEFT_LIGHT:
-                        topchr = LIGHT_HORIZONTAL
-                        botchr = ' '
-                        topmark = 'x'
-                        botmark = ' '
+                # number of edges in current char elapse
+                diffedge = oedge - iedge
+
+                if ilevel:
+                    if olevel:
+                        # thick top tee: in 1, out 1, edges => 1 . 
+                        if diffedge:
+                            topchar = DOWN_HEAVY_HORIZONTAL_LIGHT
+                            botchar = HEAVY_UP
+                        # top line: in 1, out 1, edges = 0
+                        else:
+                            topchar = LIGHT_HORIZONTAL
+                            botchar = ' '
                     else:
-                        topchr = ' '
-                        botchr = LIGHT_HORIZONTAL
-                        topmark = ' '
-                        botmark = 'x'
-                    # if required, do horizontal line chars drop
-                    if hcount > max_flat:
-                        # number of hline chars at left and right of marker
-                        hleft = max_flat - int((max_flat - 1) / 2) - 1
-                        hcount = max_flat - hleft - 1
-                        # fill chars before marker
-                        for i in range(hleft):
-                            topchars.append(topchr)
-                            botchars.append(botchr)
-                        # fill marker
-                        topchars.append(topmark)
-                        botchars.append(botmark)
-                    # fill all hline chars or after marker only
-                    for i in range(hcount):
+                        # falling edge: in 1, out 0, edges = 1 .
+                        if diffedge == 1:
+                            topchar = LIGHT_DOWN_AND_LEFT
+                            botchar = LIGHT_UP_AND_RIGHT
+                        # thick falling edge: in 1, out 0, edges > 1 .
+                        else:
+                            topchar = DOWN_HEAVY_AND_LEFT_LIGHT
+                            botchar = UP_HEAVY_AND_RIGHT_LIGHT
+                else:
+                    if olevel:
+                        # raising edge: in 0, out 1, edges = 1 .
+                        if diffedge == 1:
+                            topchar = LIGHT_DOWN_AND_RIGHT
+                            botchar = LIGHT_UP_AND_LEFT
+                        # thick falling edge: in 0, out 1, edges > 1 .
+                        else:
+                            topchar = DOWN_HEAVY_AND_RIGHT_LIGHT
+                            botchar = UP_HEAVY_AND_LEFT_LIGHT
+                    else:
+                        # thick bottom tee: in 0, out 0, edges => 1 . 
+                        if diffedge:
+                            topchar = HEAVY_DOWN
+                            botchar = UP_HEAVY_AND_HORIZONTAL_LIGHT
+                        # bottom line: in 1, out 1, edges = 0
+                        else:
+                            topchar = ' '
+                            botchar = LIGHT_HORIZONTAL
+
+            # if required, do flat levels time compression
+            if max_flat:
+
+                # if going flat count chars.
+                if topchar == LIGHT_HORIZONTAL or botchar == LIGHT_HORIZONTAL:
+                    # at flat start save top and bot chars
+                    if not flat_count:
+                        topchr = topchar
+                        botchr = botchar
+                    flat_count += 1
+
+                # if the horizontal line is terminated or end of signal or
+                # end of rendering chars, append it.
+                if topchar != LIGHT_HORIZONTAL and botchar != LIGHT_HORIZONTAL \
+                    or origin >= self.end or c >= charnum - 1:
+                    if flat_count:
+                        # if required, do horizontal line chars drop
+                        if flat_count > max_flat:
+                            # number of hline chars at left and right of marker
+                            hleft = max_flat - int((max_flat - 1) / 2) - 1
+                            flat_count = max_flat - hleft - 1
+                            # fill chars before marker
+                            for i in range(hleft):
+                                topchars.append(topchr)
+                                botchars.append(botchr)
+                            # set top and bot fill chars
+                            if topchr == LIGHT_HORIZONTAL:
+                                topchars.append('x')
+                                botchars.append(' ')
+                            else:
+                                topchars.append(' ')
+                                botchars.append('x')
+                        # fill all hline chars or after marker only
+                        for i in range(flat_count):
                            topchars.append(topchr)
                            botchars.append(botchr)
-                    hcount = 0   
-                # append current not hline chars
+                        flat_count = 0
+
+                    # append last rendering chars
+                    if olevel is None or \
+                        not origin >= self.end and not c >= charnum - 1:
+                        topchars.append(topchar)
+                        botchars.append(botchar)
+            else:
+                # append last rendering chars
                 topchars.append(topchar)
                 botchars.append(botchar)
 
-            # end of char time becomes start time at next char
-            ilevel = olevel
-            iedge = oedge
-
         # convert char lists to encoded strings
-        topchars = ''.join(topchars).encode('utf-8')   
-        botchars = ''.join(botchars).encode('utf-8')   
+        topchars = ''.join(topchars).encode('utf-8')
+        botchars = ''.join(botchars).encode('utf-8')
 
         return topchars, botchars
 
@@ -1141,7 +1153,7 @@ class Signal:
         shift = (int((self.elapse() - elapse) / buf_step) + 1) * buf_step
 
         # reduce self elapse time below elapse argument
-        discard, keep = self.split(self.start + shift)
+        discard, keep = self.split(self.start + shift,inplace=True)
 
         # return discarded part (before split) and kept part (after split).
         return (discard,keep)

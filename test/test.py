@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 # .+
 # .context    : Binary Timed Signal Processing Library
 # .title      : Test Suite
@@ -58,6 +59,45 @@ class TestBitis(unittest.TestCase):
         self.sig6 = bt.Signal(6,[8,9,10],13)
         self.sig7 = bt.Signal(7,[9,10,11],14)
         self.sig8 = bt.Signal(8,[10,11,12],15)
+
+
+    def test_level(self):
+        """ Test signal level computation. """
+
+        test = bt.Signal(0,[],1)
+        self.assertEqual((None,0),test.level(-1))
+        self.assertEqual((0,0),test.level(0))
+        self.assertEqual((0,0),test.level(0.5))
+        self.assertEqual((0,0),test.level(1))
+        self.assertEqual((None,0),test.level(2))
+
+        test = bt.Signal(0,[1],2)
+        self.assertEqual((None,0),test.level(-1))
+        self.assertEqual((0,0),test.level(0))
+        self.assertEqual((0,0),test.level(0.5))
+        self.assertEqual((0,0),test.level(1))
+        self.assertEqual((1,1),test.level(1.5))
+        self.assertEqual((1,1),test.level(2))
+        self.assertEqual((None,1),test.level(3))
+
+        test = bt.Signal(0,[1,2],3)
+        self.assertEqual((None,0),test.level(-1))
+        self.assertEqual((0,0),test.level(0))
+        self.assertEqual((0,0),test.level(0.5))
+        self.assertEqual((0,0),test.level(1))
+        self.assertEqual((1,1),test.level(1.5))
+        self.assertEqual((1,1),test.level(2))
+        self.assertEqual((0,2),test.level(2.5))
+        self.assertEqual((0,2),test.level(3))
+        self.assertEqual((None,2),test.level(4))
+
+        self.assertEqual((1,1),test.level(0.5,1))
+        self.assertEqual((1,1),test.level(1,1))
+        self.assertEqual((1,1),test.level(1.5,1))
+        self.assertEqual((1,1),test.level(2,1))
+        self.assertEqual((0,2),test.level(2.5,1))
+        self.assertEqual((0,2),test.level(3,1))
+        self.assertEqual((None,2),test.level(4,1))
 
 
     def test_clone(self):
@@ -423,6 +463,105 @@ class TestBitis(unittest.TestCase):
         # test correlation
         self.assertEqual(expected_corr,corr)
         self.assertEqual(expected_times,times)
+
+
+    def test_plotchar(self):
+        """ Test semigraphic plotting. """
+
+        top, bot = bt.Signal(0,[],1).plotchar(3,-1,2)
+        self.assertEqual('   ',top)
+        self.assertEqual(' ─ ',bot)
+        top, bot = bt.Signal(0,[1],2).plotchar(4,-1,3)
+        self.assertEqual('  ┌ ',top)
+        self.assertEqual(' ─┘ ',bot)
+
+        top, bot = bt.Signal(0,[],1).plotchar(3,0.1,0.4)
+        self.assertEqual('   ',top)
+        self.assertEqual('───',bot)
+
+        top, bot = bt.Signal(0,[1,2],3).plotchar(1)
+        self.assertEqual('╻',top)
+        self.assertEqual('┸',bot)
+        top, bot = bt.Signal(0,[1,2],3).plotchar(2)
+        self.assertEqual('┌┐',top)
+        self.assertEqual('┘└',bot)
+        top, bot = bt.Signal(0,[1,2],3).plotchar(3)
+        self.assertEqual(' ┌┐',top)
+        self.assertEqual('─┘└',bot)
+        top, bot = bt.Signal(0,[1,2],3).plotchar(4)
+        self.assertEqual(' ┌┐ ',top)
+        self.assertEqual('─┘└─',bot)
+
+        top, bot = bt.Signal(0,[1,2,3],4).plotchar(1)
+        self.assertEqual('┎',top)
+        self.assertEqual('┚',bot)
+        top, bot = bt.Signal(0,[1,2,3],4).plotchar(2)
+        self.assertEqual('┌┰',top)
+        self.assertEqual('┘╹',bot)
+        top, bot = bt.Signal(0,[1,2,3],4).plotchar(3)
+        self.assertEqual('┌┐┌',top)
+        self.assertEqual('┘└┘',bot)
+        top, bot = bt.Signal(0,[1,2,3],4).plotchar(4)
+        self.assertEqual(' ┌┐┌',top)
+        self.assertEqual('─┘└┘',bot)
+        top, bot = bt.Signal(0,[1,2,3],4).plotchar(5)
+        self.assertEqual(' ┌┐┌─',top)
+        self.assertEqual('─┘└┘ ',bot)
+        top, bot = bt.Signal(0,[1,2,3],4).plotchar(6)
+        self.assertEqual(' ┌─┐┌─',top)
+        self.assertEqual('─┘ └┘ ',bot)
+        top, bot = bt.Signal(0,[1,2,3],4).plotchar(7)
+        self.assertEqual(' ┌─┐ ┌─',top)
+        self.assertEqual('─┘ └─┘ ',bot)
+
+        top, bot = bt.Signal(0,[1,2],4).plotchar(4,max_flat=4)
+        self.assertEqual(' ┌┐ ',top)
+        self.assertEqual('─┘└─',bot)
+        top, bot = bt.Signal(0,[1,2],4).plotchar(5,max_flat=4)
+        self.assertEqual(' ┌┐  ',top)
+        self.assertEqual('─┘└──',bot)
+        top, bot = bt.Signal(0,[1,2],4).plotchar(6,max_flat=4)
+        self.assertEqual(' ┌─┐  ',top)
+        self.assertEqual('─┘ └──',bot)
+        top, bot = bt.Signal(0,[1,2],4).plotchar(7,max_flat=4)
+        self.assertEqual(' ┌─┐   ',top)
+        self.assertEqual('─┘ └───',bot)
+        top, bot = bt.Signal(0,[1,2],4).plotchar(8,max_flat=4)
+        self.assertEqual('  ┌─┐   ',top)
+        self.assertEqual('──┘ └───',bot)
+        top, bot = bt.Signal(0,[1,2],4).plotchar(9,max_flat=4)
+        self.assertEqual('  ┌─┐    ',top)
+        self.assertEqual('──┘ └────',bot)
+        top, bot = bt.Signal(0,[1,2],4).plotchar(10,max_flat=4)
+        self.assertEqual('  ┌──┐    ',top)
+        self.assertEqual('──┘  └────',bot)
+        top, bot = bt.Signal(0,[1,2],4).plotchar(11,max_flat=4)
+        self.assertEqual('  ┌──┐    ',top)
+        self.assertEqual('──┘  └──x─',bot)
+        top, bot = bt.Signal(0,[1,2],4).plotchar(12,max_flat=4)
+        self.assertEqual('   ┌──┐    ',top)
+        self.assertEqual('───┘  └──x─',bot)
+        top, bot = bt.Signal(0,[1,2],4).plotchar(13,max_flat=4)
+        self.assertEqual('   ┌──┐    ',top)
+        self.assertEqual('───┘  └──x─',bot)
+        top, bot = bt.Signal(0,[1,2],4).plotchar(14,max_flat=4)
+        self.assertEqual('   ┌───┐    ',top)
+        self.assertEqual('───┘   └──x─',bot)
+        top, bot = bt.Signal(0,[1,2],4).plotchar(15,max_flat=4)
+        self.assertEqual('   ┌───┐    ',top)
+        self.assertEqual('───┘   └──x─',bot)
+        top, bot = bt.Signal(0,[1,2],4).plotchar(19,max_flat=4)
+        self.assertEqual('    ┌────┐    ',top)
+        self.assertEqual('────┘    └──x─',bot)
+        top, bot = bt.Signal(0,[1,2],4).plotchar(20,max_flat=4)
+        self.assertEqual('    ┌────┐    ',top)
+        self.assertEqual('──x─┘    └──x─',bot)
+        top, bot = bt.Signal(0,[1,2],4).plotchar(21,max_flat=4)
+        self.assertEqual('    ┌────┐    ',top)
+        self.assertEqual('──x─┘    └──x─',bot)
+        top, bot = bt.Signal(0,[1,2],4).plotchar(22,max_flat=4)
+        self.assertEqual('    ┌──x─┐    ',top)
+        self.assertEqual('──x─┘    └──x─',bot)
 
 
     def test_pwm_codec_noperiod(self):
