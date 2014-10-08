@@ -37,7 +37,7 @@ import sys              # sys constants
 
 # define global variables
 
-__version__ = '0.11.1'
+__version__ = '0.11.2'
 __author__ = 'Fabrizio Pollastri <f.pollastri@inrim.it>'
 
 
@@ -1031,6 +1031,7 @@ class Signal:
             org = origin + (end - origin) * (c + 1) / float(charnum)
             # signal level at end of char, edges number before end of char.
             olevel, oedge = self.level(org,iedge)
+
             # pad rending outside signal domain
             if ilevel is None or olevel is None:
                 topchar = ' '
@@ -1096,7 +1097,7 @@ class Signal:
                 # if the horizontal line is terminated or end of signal or
                 # end of rendering chars, append it.
                 if topchar != LIGHT_HORIZONTAL and botchar != LIGHT_HORIZONTAL \
-                    or origin >= self.end or c >= charnum - 1:
+                    or c >= charnum - 1:
                     if flat_count:
                         # if required, do horizontal line chars drop
                         if flat_count > max_flat:
@@ -1120,11 +1121,10 @@ class Signal:
                            botchars.append(botchr)
                         flat_count = 0
 
-                    # append last rendering chars
-                    if olevel is None or \
-                        not origin >= self.end and not c >= charnum - 1:
-                        topchars.append(topchar)
-                        botchars.append(botchar)
+                # append last rendering chars
+                if topchar != LIGHT_HORIZONTAL and botchar != LIGHT_HORIZONTAL:
+                    topchars.append(topchar)
+                    botchars.append(botchar)
             else:
                 # append last rendering chars
                 topchars.append(topchar)

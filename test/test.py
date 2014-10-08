@@ -563,6 +563,20 @@ class TestBitis(unittest.TestCase):
         self.assertEqual('    ┌──x─┐    ',top)
         self.assertEqual('──x─┘    └──x─',bot)
 
+        top, bot = self.test.plotchar(1,max_flat=4)
+        self.assertEqual('╻',top)
+        self.assertEqual('┸',bot)
+        top, bot = self.test.plotchar(6,max_flat=4)
+        self.assertEqual('╻╻╻╻┎┒',top)
+        self.assertEqual('┸┸┸┸┚┖',bot)
+        top, bot = self.test.plotchar(11,max_flat=4)
+        self.assertEqual('╻╻╻╻┌┰┐╻┌┐╻',top)
+        self.assertEqual('┸┸┸┸┘╹└┸┘└┸',bot)
+        top, bot = self.test.plotchar(16,max_flat=4)
+        self.assertEqual('┎┰┐╻┌┐┌┐┌┐┌┐┌┐ ╻',top)
+        self.assertEqual('┚╹└┸┘└┘└┘└┘└┘└─┸',bot)
+
+
 
     def test_pwm_codec_noperiod(self):
         """ Make a number of conversion from a random code to the
