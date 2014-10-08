@@ -1,6 +1,15 @@
 Changes
 *******
 
+Release 0.11.2 (released 8-Oct-2014)
+====================================
+
+Bugs fixed
+----------
+
+* Method plotchar: missing last non flat char after flat chars.
+
+
 Release 0.11.1 (released 6-Oct-2014)
 ====================================
 
