@@ -1,6 +1,38 @@
 Changes
 *******
 
+Release 0.12.0 (released 1-Dec-2014)
+====================================
+
+New features
+------------
+
+* Method shift: now skips computations for zero offset.
+* New method phase: computation of phase among two signals.
+
+Changes
+-------
+* Method split: now manage a split time outside signal domain returning the
+  proper void signal.
+* Method correlation: dropped step_left and step_right arguments, substituted
+  skip and width.
+* Method plotchar: dropped period argument.
+* Method mod2code: now symbol start time is the phase with respect to the sig
+  start time.
+* Methods noise and square: now require an origin argument.
+   
+Internals
+---------
+* Method correlation: refactoring for new arguments skip and width.
+* Method correlation: augumented test.
+* New method phase: add test.
+
+Documentation
+-------------
+
+* Started better layout for function/methods arguments and return patterns.
+
+
 Release 0.11.2 (released 8-Oct-2014)
 ====================================
 

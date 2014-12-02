@@ -67,5 +67,12 @@ Installation
     pip install bitis
 
 
+Code Repository
+===============
+
+There is also a code repository at `https://github.com/fabriziop/bitis`_ .
+
+
 .. _Matplotlib: http://matplotlib.org
 .. _NumPy: http://numpy.org
+.. _https://github.com/fabriziop/bitis: https://github.com/fabriziop/bitis
