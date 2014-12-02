@@ -21,7 +21,7 @@ After installing::
 
 Then, direct your browser to ``_build/html/index.html``.
 
-Or read them online at <http://sphinx-doc.org/>.
+Or read them online at <http://bitis.inrim.it/>.
 
 
 Testing
@@ -35,7 +35,8 @@ To run the tests with the interpreter available as ``python``, use::
 Copyright
 =========
 
-Bitis is authored by Fabrizio Pollastri <f.pollastri_a_t_inrim.it>, year 2013,
+Bitis is authored by Fabrizio Pollastri <f.pollastri_a_t_inrim.it>,
+years 2013-2014,
 under the GNU General Public License version 3.
 
 

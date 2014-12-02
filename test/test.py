@@ -170,7 +170,7 @@ class TestBitis(unittest.TestCase):
             period_mean = (end - start) / 100.
             width_mean = 0.2  * period_mean
             inplace = random.randint(0,1)
-            original = bt.noise(start,end,period_mean=period_mean,
+            original = bt.noise(start,start,end,period_mean=period_mean,
                     width_mean=width_mean)
             if inplace:
               reference = original.clone()
@@ -201,7 +201,7 @@ class TestBitis(unittest.TestCase):
             split = random.uniform(start+0.001,end-0.001)
             period_mean = (end - start) / 100.
             width_mean = 0.2  * period_mean
-            original = bt.noise(start,end,period_mean=period_mean,
+            original = bt.noise(start,start,end,period_mean=period_mean,
                     width_mean=width_mean)
             inplace = random.randint(0,1)
             if inplace:
@@ -233,7 +233,7 @@ class TestBitis(unittest.TestCase):
             end = random.uniform(start,start + 100.)
             period_mean = (end - start) / 100.
             width_mean = 0.02  * period_mean
-            original = bt.noise(start,end,period_mean=period_mean,
+            original = bt.noise(start,start,end,period_mean=period_mean,
                     width_mean=width_mean)
 
             # chop and join
@@ -420,8 +420,8 @@ class TestBitis(unittest.TestCase):
             end_a = random.uniform(start_a,start_a + 100.)
             start_b = (start_a + end_a) / 2.
             end_b = random.uniform(start_b,start_b + 100.)
-            in_a = bt.noise(start_a,end_a,period_mean=0.1,width_mean=3)
-            in_b = bt.noise(start_b,end_b,period_mean=0.3,width_mean=2)
+            in_a = bt.noise(start_a,start_a,end_a,period_mean=0.1,width_mean=3)
+            in_b = bt.noise(start_b,start_b,end_b,period_mean=0.3,width_mean=2)
 
             in_a = self.sig0
             in_b = self.sig2
@@ -452,17 +452,89 @@ class TestBitis(unittest.TestCase):
         # create test signals
         in_a = bt.Signal(-2,[-1,1,2,7],12)
         in_b = bt.Signal(-2,[0,3,5,8],12)
-        expected_corr =  [  1,  2,  2,  2, 2, 2, 2, 3, 4, 5, 6, 6, 6]
+        expected_corr =  [ 1., 2., 2., 2.,2.,2.,2.,3.,4.,5.,6.,6.,6.]
         expected_times = [-13,-12,-11,-10,-9,-8,-7,-6,-5,-4,-3,-2,-1]
-        expected_corr +=  [9,10,9,7,3,3,3,3,2,1, 2, 1, 1, 1]
-        expected_times += [0, 1,2,3,4,5,6,7,8,9,10,11,12,13]
+        expected_corr +=  [9.,10.,9.,7.,3.,3.,3.,3.,2.,1.,2.,1.,1.,1.]
+        expected_times += [0,1,2,3,4,5,6,7,8,9,10,11,12,13]
 
-        # do correlation
+        # test, no skip, no width.
         corr, times = in_a.correlation(in_b)
-
-        # test correlation
         self.assertEqual(expected_corr,corr)
         self.assertEqual(expected_times,times)
+
+        # test, with skip, no width.
+        corr, times = in_a.correlation(in_b,skip=1.)
+        self.assertEqual(expected_corr[1:],corr)
+        self.assertEqual(expected_times[1:],times)
+        corr, times = in_a.correlation(in_b,skip=2.)
+        self.assertEqual(expected_corr[2:],corr)
+        self.assertEqual(expected_times[2:],times)
+        corr, times = in_a.correlation(in_b,skip=26.)
+        self.assertEqual(expected_corr[26:],corr)
+        self.assertEqual(expected_times[26:],times)
+        corr, times = in_a.correlation(in_b,skip=27.)
+        self.assertEqual(expected_corr[27:],corr)
+        self.assertEqual(expected_times[27:],times)
+        corr, times = in_a.correlation(in_b,skip=28.)
+        self.assertEqual(expected_corr[28:],corr)
+        self.assertEqual(expected_times[28:],times)
+
+        # test, with width, no skip.
+        corr, times = in_a.correlation(in_b,width=-1.)
+        self.assertEqual([],corr)
+        self.assertEqual([],times)
+        corr, times = in_a.correlation(in_b,width=1.)
+        self.assertEqual(expected_corr[:1],corr)
+        self.assertEqual(expected_times[:1],times)
+        corr, times = in_a.correlation(in_b,width=2.)
+        self.assertEqual(expected_corr[:2],corr)
+        self.assertEqual(expected_times[:2],times)
+        corr, times = in_a.correlation(in_b,width=27.)
+        self.assertEqual(expected_corr,corr)
+        self.assertEqual(expected_times,times)
+        corr, times = in_a.correlation(in_b,width=28.)
+        self.assertEqual(expected_corr,corr)
+        self.assertEqual(expected_times,times)
+
+        # test, with skip and width.
+        corr, times = in_a.correlation(in_b,skip=1.,width=1.)
+        self.assertEqual(expected_corr[1:2],corr)
+        self.assertEqual(expected_times[1:2],times)
+        corr, times = in_a.correlation(in_b,skip=5.,width=10.)
+        self.assertEqual(expected_corr[5:15],corr)
+        self.assertEqual(expected_times[5:15],times)
+        corr, times = in_a.correlation(in_b,skip=25.,width=1.)
+        self.assertEqual(expected_corr[25:26],corr)
+        self.assertEqual(expected_times[25:26],times)
+        corr, times = in_a.correlation(in_b,skip=26.,width=1.)
+        self.assertEqual(expected_corr[26:27],corr)
+        self.assertEqual(expected_times[26:27],times)
+
+
+    def test_phase(self):
+        """ Test phase function of two signals (*self* and *other*). """
+
+        # make random sequence repeteable
+        random.seed(1)
+
+        # create random test signals
+        model = bt.noise(0.,0.,10.,period_mean=2,period_stddev=0.5,
+            width_mean=1,width_stddev=0.25,active=1)
+        base = bt.noise(-10.,-10.,10.,period_mean=1,period_stddev=0.25,
+            width_mean=0.25,width_stddev=0.125,active=1)
+
+        # apply a sliding phase to sig, add base and compute phase from model
+        for i in range(10):
+            expected_phase = random.uniform(0.,10.)
+            #expected_phase = 2.49
+            ssig = model.shift(-expected_phase,inplace=False)
+            ssig.start = -10.
+            ssig.end = +10.
+            ssig = ssig | base
+            phase, corrs, shifts = ssig.phase(model,None,(0.5,0.1,0.01))
+
+            # test detected phase
+            self.assertAlmostEqual(expected_phase,phase,delta=0.01)
 
 
     def test_plotchar(self):
@@ -710,16 +782,16 @@ class TestBitis(unittest.TestCase):
             symbols_num = random.randint(2,10)
             symbols = []
             for i in range(symbols_num):
-                symbol = bt.noise(start,end,period_mean=period_mean,
+                symbol = bt.noise(start,start,end,period_mean=period_mean,
                     width_mean=width_mean)
                 # ensure same start and end levels equal to 0
                 while symbol.slevel or symbol.slevel != symbol.end_level():
-                    symbol = bt.noise(start,end,period_mean=period_mean,
+                    symbol = bt.noise(start,start,end,period_mean=period_mean,
                         width_mean=width_mean)
                 symbols.append(symbol)
 
             # build random code
-            code_len = random.randint(2,20)
+            code_len = random.randint(1,20)
             code = []
             for i in range(code_len):
                 code.append(random.randint(0,symbols_num-1))
@@ -744,7 +816,7 @@ class TestBitis(unittest.TestCase):
         # create signals
         start = 0
         end =200 
-        original = bt.noise(start,end)
+        original = bt.noise(start,start,end)
         stream = bt.Signal()
         accumulator = bt.Signal()
 

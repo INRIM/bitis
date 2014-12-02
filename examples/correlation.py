@@ -36,8 +36,8 @@ import matplotlib.pyplot as pl
 random.seed(1)
 
 # create random signals
-in_a = bt.noise(-2,12,period_mean=6,width_mean=3)
-in_b = bt.noise(-2,12,period_mean=4,width_mean=2)
+in_a = bt.noise(-2,-2,12,period_mean=6,width_mean=3)
+in_b = bt.noise(-2,-2,12,period_mean=4,width_mean=2)
 
 # compute correlation
 corr_ab = in_a.correlation(in_b,step_size=0.1)

@@ -36,7 +36,7 @@ This is the graphic plotting result using *plot* method.
 This is the semigraphic plotting result using *plotchar* method. 
 The figure shows a sequence of plotting of the same test signal with increasing
 resolution. Resolution is the length of the plotting character string, it is
-printed at line beginning and spans from only one chararacter until a string 71 
+printed at line beginning and spans from only one chararacter until a string 76 
 characters long.
 
 .. literalinclude:: ../examples/plot.txt

@@ -36,20 +36,21 @@ import matplotlib.pyplot as pl
 random.seed(1)
 
 # generate the original signal: square wave, 50 cycles @1Hz, 50% duty cycle.
-original = bt.square(0.,50.,1.,0.5)
+original = bt.square(0.,0.,50.,1.,0.5)
 
 # add jitter to original signal
 jittered = original.clone()
 jittered.jitter(0.1)
 
 # add noise by xor
-jittered_noised = jittered ^ bt.noise(0,50,period_mean=5,width_mean=0.5)
+jittered_noised = jittered ^ bt.noise(0,0,50,period_mean=5,width_mean=0.5)
 
 # compute correlation between original and disturbed signal
-corr, shift = original.correlation(jittered_noised,step_size=0.05,step_left=20,step_right=20)
+corr, shift = original.correlation(jittered_noised,step_size=0.05,
+    skip=49.45,width=1.05)
 
 # start plotting
-fig1 = pl.figure(1,figsize=(6,6))
+fig1 = pl.figure(1,figsize=(6,7))
 pl.suptitle('BITIS: lockin to a noisy signal.')
 
 # plot original signal

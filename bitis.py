@@ -37,7 +37,7 @@ import sys              # sys constants
 
 # define global variables
 
-__version__ = '0.11.2'
+__version__ = '0.12.0'
 __author__ = 'Fabrizio Pollastri <f.pollastri@inrim.it>'
 
 
@@ -128,26 +128,26 @@ class Signal:
         # value checking
         if self.start and not self.start < self.end:
             raise ValueError('signal start time must be < then end time.'
-                + '\n  start time: %s' % str(self.start)
-                + '\n  end time: %s' % str(self.end))
+                + '\n  start time: %s' % repr(self.start)
+                + '\n  end time: %s' % repr(self.end))
         if len(self.edges) > 0:
             if not self.start <= self.edges[0]:
                 raise ValueError(
                     'signal start time must be <= than first edge time.'
-                    + '\n  start time: %s' % str(self.start)
-                    + '\n  first edge time: %s' % str(self.edges[0]))
+                    + '\n  start time: %s' % repr(self.start)
+                    + '\n  first edge time: %s' % repr(self.edges[0]))
             if not self.edges[-1] <= self.end:
                 raise ValueError(
                    'signal last edge time must be <= than end time.'
-                   + '\n  last edge time: %s' % str(self.edges[-1])
-                   + '\n  end time: %s' % str(self.end))
+                   + '\n  last edge time: %s' % repr(self.edges[-1])
+                   + '\n  end time: %s' % repr(self.end))
             if len(self.edges) > 1:
                 for i in range(1,len(self.edges)):
                     if not self.edges[i-1] < self.edges[i]:
                         raise ValueError(
                           'signal edges times must be ascending.'
-                          +'\n  found edges[%d]: %s'% (i-1,str(self.edges[i-1]))
-                          +'\n  found edges[%d]: %s' % (i,str(self.edges[i])))
+                          +'\n  found edges[%d]: %s'%(i-1,repr(self.edges[i-1]))
+                          +'\n  found edges[%d]: %s' %(i,repr(self.edges[i])))
 
 
     def __str__(self):
@@ -239,11 +239,12 @@ class Signal:
         if not sig:
             return sig
 
-        # add offset
-        sig.start += offset
-        for i in range(len(self)):
-                sig.edges[i] += offset
-        sig.end += offset
+        # if nonzero offset, add it.
+        if offset:
+            sig.start += offset
+            for i in range(len(self)):
+                    sig.edges[i] += offset
+            sig.end += offset
 
         return sig
 
@@ -295,10 +296,10 @@ class Signal:
         the part after the split time, it starts at the split time.
         If *split* is equal to a signal change time, the change is put into
         the second part signal.
+        If *split* is before signal start, return a void signal and *self*.
+        If *split* is after signal end, return *self* and a void signal. 
         If *inplace* is false, the second signal is a new signal object.
         If *inplace* is true, the second signal is put into the *self* signal. 
-        If *split* is not inside the original signal domain, no split
-        occours, the void signal is returned.
         If *self* is void, return the void signal. """
 
         # void is split invariant
@@ -452,8 +453,8 @@ class Signal:
         # check for non overlap
         assert self.end <= other.start, \
                 'self and other overlaps in time.\n' \
-                + 'self end = ' + str(self.end) \
-                + ' , other start = ' + str(other.start)
+                + 'self end = ' + repr(self.end) \
+                + ' , other start = ' + repr(other.start)
 
         # check for same end-start level
         assert len(self) & 1 ^ self.slevel == other.slevel, \
@@ -874,69 +875,51 @@ class Signal:
         return integral
 
 
-    def correlation(self,other,mask=None,normalize=False,step_size=1,
-            step_left=None,step_right=None):
+    def correlation(self,other,mask=None,normalize=False,step_size=1.,
+            skip=0,width=None):
         """ Return the correlation function of two given signal objects:
         *self* and *other*. If *mask* is defined as signal object, the
         correlation is computed only where mask=1. Output can be absolute:
         integral of xor between shifted *self* and *other* signals
         (*normalize=False*). Output can be normalized (*normalize=True*) in
-        the range -1 +1.  The correlation function time scale is set by
+        the range -1 +1. The correlation function time scale is set by
         *step_size*.
         The correlation function is returned as two lists: the correlation
-        values and the correlation time shifts. The origin of time shift
-        is set when the shifted start time of *self* is equal to the start
-        time of *other*. *step_left* is the number of steps where to compute
-        the correlation function on the left of origin. If it is undefined,
-        the number of steps is set automatically to the maximum extent giving
-        a non empty intersection among *self* and *other*. The same holds for
-        *step_right*. """
+        values and the correlation time shifts applied to the *self* signal to
+        slide it over the *other* signal. 
+        *skip* is the time elapse at the start of the correlation
+        function not to be computed.
+        *width* is the time elapse where to compute the correlation function.
+        """
 
         # if at least one signal is void, return empty lists.
         if not self or not other:
             return [],[]
 
+        # correlation width
+        def_width = max(0,self.elapse() + other.elapse() - skip - step_size)
+        if width:
+            width = max(0,min(width,def_width))
+        else:
+            width = def_width
+
+        # if not at least one step, do empty return.
+        if width < step_size:
+            return [],[]
+
         # simplify variables access
         sig_a = self.clone()
 
-        # number of slide steps of A toward left
-        left_steps = self.elapse() / step_size
-        # since A xor B needs a non null intersection, if step_size is an
-        # exact multple of A elapse, go back one step.
-        if left_steps > 1. and left_steps % 1. == 0:
-            left_steps -= 1
-
-        # if step_left is defined, use it but limit it to left_steps boundary.
-        if step_left != None and step_left <= left_steps:
-            left_steps = step_left
-
-        # step_lefts need to be integer
-        left_steps = int(left_steps)
-
-        # number of slide steps of A toward right
-        right_steps = other.elapse() / step_size
-        # since A xor B needs a non null intersection, if step_size is an
-        # exact multple of B elapse, go back one step.
-        if right_steps > 1. and right_steps % 1. == 0:
-            right_steps -= 1
-
-        # if step_right is defined, use it but limit it to right_steps boundary.
-        if step_right != None and step_right <= right_steps:
-            right_steps = step_right
-
-        # step_right need to be integer
-        right_steps = int(right_steps)
-
-        # shift that align A start on B start
-        shift = other.start - self.start
+        # time shift that, applied to A, align A end with B start.
+        shift = other.start - self.end
 
         # apply shift to slide A to the leftmost position
-        sig_a.shift(shift - left_steps * step_size,inplace=True)
+        sig_a.shift(shift + skip + step_size,inplace=True)
 
         # compute correlation step by step
         corr = []
         shifts = []
-        for step in range(-left_steps,right_steps+1):
+        while sig_a.start <= self.start + shift + skip + width:
 
             # correlation among signal A and B
             if mask:
@@ -948,12 +931,109 @@ class Signal:
             else:
                 corr += [xor.integral(0,normalize=False)]
 
-            shifts += [step * step_size + shift]
+            shifts += [sig_a.start - self.start]
 
             # shift right A by step units
             sig_a.shift(step_size,inplace=True)
 
         return corr, shifts
+
+
+    def phase(self,other,mask,resolutions,period=None):
+        """ Find the phase between *self* and *other*. Phase is the time shift
+        that applied to *self* gives the maximum correlation:
+        *self* (t + phase) * *other* (t) is maximum (* means correlation).
+        For faster computation, the phase can be computed by progressive smaller
+        resolutions.
+
+          **mask**: signal, same elapse of *other*, compute correlation only
+          where *mask* == 1.
+
+          **resolutions**: tuple or list of positive float, at least one element,
+          sequence of resolutions from coarser to finest, the time step used in
+          the computation of correlation.
+
+          **period**: None or positive float. If None, phase is computed as
+          absolute time shift. If float, phase is the time shift with respect to
+          nearest integer multiple of *period*, its range is - *period*/2. <= 
+          phase < + *period*/2..
+
+        Return pattern **(** *phase, corrs, shifts* **)**
+
+          **phase**: float, the computed phase.
+
+          **corrs**: list of lists of floats, positive. For each resolution value
+          specified in *resolutions*, the unnormalized values of the
+          correlation function.
+
+          **shifts**: list of lists of floats. The time shift values
+          corresponding to the correlation function values in *corrs*.
+
+        """
+
+        # init output
+        phase = 0
+        phi = 0
+        corrs = []
+        shifts = []
+
+        # If period is defined, take correlation range from signal start to
+        # twice the signal period. Else, take the whole range where
+        # correlation is defined.
+        if period:
+            width = 2 * period
+        else:
+            width = None
+
+        # preserve original signal
+        sig = self.clone()
+
+        # correlation function of signal with model
+        corr, shift = sig.correlation(model,mask,step_size=resolutions[0],
+            width=width,normalize=False)
+
+        # save results of current resolution level
+        corrs.append(corr)
+        shifts.append(shift)
+
+        # the shift with the max of corr is the phase
+        corr_max, phi = max(zip(corr,shift))
+
+        # phase of current resolution level adds to previous levels
+        phase += phi
+
+        # compute phase, iterating from coarsest resolution to finest.
+        last_resolution = resolutions[0]
+        for resolution in resolutions[1:]:
+            # rephase signal
+            sig.shift(phi,inplace=True)
+
+            # correlation function of signal with model
+            corr, shift = sig.correlation(model,mask,
+                step_size=resolution,
+                skip=sig.end-model.start-resolution-0.6*last_resolution,
+                width=1.3*last_resolution,
+                normalize=False)
+
+            # save results of current resolution level
+            corrs.append(corr)
+            shifts.append(shift)
+
+            # the shift with the max of corr is the phase
+            corr_max, phi = max(zip(corr,shift))
+
+            # phase of current resolution level adds to previous levels
+            phase += phi
+
+            # current resolution becomes the next search range
+            last_resolution = resolution
+
+        # if period, remove integer period multiples and center phase
+        # range on an integer multiple.
+        if period:
+            phase = (phase + period * 0.5) % period - period * 0.5
+
+        return phase, corrs, shifts
 
 
     def plot(self,*args,**kargs):
@@ -986,24 +1066,32 @@ class Signal:
             plot([self.start]+self.edges+[self.end],levels,**kargs)
 
 
-    def plotchar(self,charnum,origin=None,end=None,period=None,max_flat=None):
+    def plotchar(self,charnum,origin=None,end=None,max_flat=None):
         """ Semigraphic plot of signal *self* with unicode line drawing
         characters (U+25xx).
-        Return two strings utf-8 encoded of the same length: the top and the
-        bottom rendering rows.
-        *charnum* is the maximum length of the string of the rendering
-        characters.
-        *origin* is the rendering start time. If None, *start* is set to the
-        signal start time.
-        *end* is the rendering end time. If None, *end* is set to the
-        signal end time.
-        *period* is the elapse time covered by one char. If
-        None, *period* is set to (end-start)/charnum . If *period* is set,
-        *end* is ignored. Require locale setting.
-        *max_flat* is the maximum number of consecutive horizontal line
-        characters. When reached, no more horizontal chars are added and
-        a lower case 'x' char is put in the middle of this sequence
-        to mark the character drop. If None, compression is disbled. """
+        Require locale setting.
+
+          **charnum**: integer, the maximum length of the string of the rendering
+          characters.
+
+          **origin**: float, the rendering start time. If None, *start* is set
+          to the signal start time.
+
+          **end**: float, the rendering end time. If None, *end* is set to the
+          signal end time.
+
+          **max_flat**: integer, the maximum number of consecutive horizontal
+          line characters. When reached, no more horizontal chars are added and
+          a lower case 'x' char is put in the middle of this sequence
+          to mark the character drop. If None, compression is disbled.
+        
+        Return pattern **(** *topchars*, *botchars* **)**
+
+          **topchars**: utf-8 encoded string. The top row of unicode characters
+          rendering the semigraphic plot.
+
+          **botchars**: the same as *topchars*, but for the bottom row.
+        """
 
         # if not defined, set default start and end times
         if origin is None:
@@ -1011,10 +1099,6 @@ class Signal:
         if end is None:
             end = self.end
        
-        # set period
-        if period is None:
-            period = (end - origin) / float(charnum)
-
         # initial level and edge number
         olevel, oedge = self.level(origin,0)
 
@@ -1186,6 +1270,8 @@ def mod2code(mod,symbols,mask=None,origin=None,tscale=1.):
     normalized correlation, list of float) of all symbols and the time where
     the demodulation ends.
     *symbols* is a list of signal objects, one for each coding symbol.
+    The symbols start time is assumed as phase difference with respect to the
+    signal start time.
     *mask* is a signal objects.
     Symbol correlation is computed only where mask = 1.
     *origin* is the start time of the first coded symbol. If not defined, it
@@ -1193,22 +1279,28 @@ def mod2code(mod,symbols,mask=None,origin=None,tscale=1.):
     All symbols must have the same elapse time that is the symbol period.
     The same holds for mask. """
 
-    # symbol period
+    # symbol period and phase
     period = symbols[0].elapse()
+    phase = symbols[0].start
 
     # if origin not defined, set default value
     if origin is None:
         origin = mod.start
 
-    # chop signal, if last chop hits signal end, discard it (no full period)
+    # adjust origin with symbols phase
+    origin += phase
+
+    # chop signal, if last chop has no full period, discard it.
     chops = mod.chop(period,origin)
+    if chops[-1].elapse() < period:
+        del chops[-1]
 
     # for each symbol period
     code = []
     corr = []
     corrs = []
     for chop in chops:
-        chop.shift(-chop.start,inplace=True)
+        chop.shift(phase-chop.start,inplace=True)
         cor = []
         # correlate each symbol with current period
         if mask:
@@ -1567,7 +1659,7 @@ def serial_rx(sline,char_bits=8,parity='off',stop_bits=2,baud=50):
 
 
 def __parity(value):
-    """ Return 0 for even parity, 1 for odd parity in value"""
+    """ Return 0 for even parity, 1 for odd parity in value. """
     ones = 0
     while value:
         value &= value - 1
@@ -1575,9 +1667,10 @@ def __parity(value):
     return ones & 1
 
 
-def noise(origin,end,period_mean=1,period_stddev=1,
+def noise(start,origin,end,period_mean=1,period_stddev=1,
         width_mean=1,width_stddev=1,active='random'):
-    """ Return a signal object with random pulses. *origin* is
+    """ Return a signal object with random pulses.
+    *start* is the noise signal start. *origin* is
     the time of the first pulse trailing edge. *end* is the signal
     end time. Pulses
     period and width follow a gaussian distribution: *period_mean* and
@@ -1593,9 +1686,6 @@ def noise(origin,end,period_mean=1,period_stddev=1,
         slevel = 1
     else:
         slevel = 0
-
-    # set start and end
-    start = origin
 
     # level 0 mean and stdev from frequency and pulse width moments
     pause_mean = period_mean - width_mean
@@ -1622,17 +1712,15 @@ def noise(origin,end,period_mean=1,period_stddev=1,
     return Signal(start,edges,end,slevel)
 
 
-def square(origin,end,period,width,active=1):
+def square(start,origin,end,period,width,active=1):
     """ Return a signal object with a square wave with constant period
-    and constant duty cycle. *origin* is the time of the first pulse
+    and constant duty cycle. *start* is the start time. *origin* is the
+    time of the first pulse
     trailing edge. *end* is the signal end time. *period* is the pulse
     period. *width* is the pulse width at active level. """
 
     # set start level according to active level
     slevel = ~ active & 1
-
-    # set start just before origin
-    start = origin
 
     # insert first pause interval end
     edges = []
