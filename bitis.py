@@ -949,21 +949,23 @@ class Signal:
           **mask**: signal, same elapse of *other*, compute correlation only
           where *mask* == 1.
 
-          **resolutions**: tuple or list of positive float, at least one element,
-          sequence of resolutions from coarser to finest, the time step used in
-          the computation of correlation.
+          **resolutions**: tuple or list of positive float, at least one
+          element, sequence of resolutions from coarser to finest, the time
+          step used in the computation of correlation.
 
           **period**: None or positive float. If None, phase is computed as
           absolute time shift. If float, phase is the time shift with respect to
           nearest integer multiple of *period*, its range is - *period*/2. <= 
           phase < + *period*/2..
 
-        Return pattern **(** *phase, corrs, shifts* **)**
+        Return pattern **(** *phase, corr_phase, corrs, shifts* **)**
 
           **phase**: float, the computed phase.
 
-          **corrs**: list of lists of floats, positive. For each resolution value
-          specified in *resolutions*, the unnormalized values of the
+          **corr_phase**: float, the correlation function value at phase shift.
+
+          **corrs**: list of lists of floats, positive. For each resolution
+          value specified in *resolutions*, the unnormalized values of the
           correlation function.
 
           **shifts**: list of lists of floats. The time shift values
@@ -988,8 +990,8 @@ class Signal:
         # preserve original signal
         sig = self.clone()
 
-        # correlation function of signal with model
-        corr, shift = sig.correlation(model,mask,step_size=resolutions[0],
+        # correlation function of self with other
+        corr, shift = sig.correlation(other,mask,step_size=resolutions[0],
             width=width,normalize=False)
 
         # save results of current resolution level
@@ -1008,10 +1010,10 @@ class Signal:
             # rephase signal
             sig.shift(phi,inplace=True)
 
-            # correlation function of signal with model
-            corr, shift = sig.correlation(model,mask,
+            # correlation function of self with other
+            corr, shift = sig.correlation(other,mask,
                 step_size=resolution,
-                skip=sig.end-model.start-resolution-0.6*last_resolution,
+                skip=sig.end-other.start-resolution-0.6*last_resolution,
                 width=1.3*last_resolution,
                 normalize=False)
 
@@ -1033,7 +1035,7 @@ class Signal:
         if period:
             phase = (phase + period * 0.5) % period - period * 0.5
 
-        return phase, corrs, shifts
+        return phase, corr_max, corrs, shifts
 
 
     def plot(self,*args,**kargs):

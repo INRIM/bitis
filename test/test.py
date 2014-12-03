@@ -531,7 +531,8 @@ class TestBitis(unittest.TestCase):
             ssig.start = -10.
             ssig.end = +10.
             ssig = ssig | base
-            phase, corrs, shifts = ssig.phase(model,None,(0.5,0.1,0.01))
+            phase, corr_phase, corrs, shifts = \
+                ssig.phase(model,None,(0.5,0.1,0.01))
 
             # test detected phase
             self.assertAlmostEqual(expected_phase,phase,delta=0.01)
