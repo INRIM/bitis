@@ -1,17 +1,29 @@
 Changes
 *******
 
+Release 0.12.2 (released 6-Dec-2014)
+====================================
+
+Bugs fixed
+----------
+* Method correlation: fix wrong computation of correlation function when there
+  is a mask.
+* Method phase: fix initial search width not set to the whole shift range.
+
+Documentation
+-------------
+* Method correlation: new documentation layout.
+
+
 Release 0.12.1 (released 3-Dec-2014)
 ====================================
 
 New features
 ------------
-
 * Method phase: add correlation value at phase shift.
 
 Bugs fixed
 ----------
-
 * Method phase: fix incomplete refactoring of other identifier.
 
 
@@ -20,7 +32,6 @@ Release 0.12.0 (released 1-Dec-2014)
 
 New features
 ------------
-
 * Method shift: now skips computations for zero offset.
 * New method phase: computation of phase among two signals.
 
@@ -52,7 +63,6 @@ Release 0.11.2 (released 8-Oct-2014)
 
 Bugs fixed
 ----------
-
 * Method plotchar: missing last non flat char after flat chars.
 
 
@@ -61,19 +71,16 @@ Release 0.11.1 (released 6-Oct-2014)
 
 Changes
 -------
-
 * Method plotchar: now argument max_flat deault is None, was 100 .
 
 Bugs fixed
 ----------
-
 * Method level: now for time < start return (None,0) .
 * Method plotchar: last flat lost when signal end < plot end.
 * Method stream: now the newest part is self, was a new allocated signal.
     
 Internals
 ---------
-
 * Method plotchar refactored.
 * New test for methods level and plotchar.
 
@@ -83,25 +90,21 @@ Release 0.11.0 (released 1-Oct-2014)
 
 Features added
 --------------
-
 * Method plotchar: semigraphic signal plot with line drawing characters.
 
 Changes
 -------
-
 * Method level: now return None, len(signal) when time is beyond signal end.
 * Method elapse: return zero when signal is void, before was none.
 
 Bugs fixed
 ----------
-
 * Method serial_tx: returned void signal when chars had len == 1.
 * Method serial_rx: dead lock when last sample time was before end time and
   after last ege time.
 
 Documentation
 -------------
-
 * Add example plot.
 
 
@@ -110,7 +113,6 @@ Release 0.10.0 (released 26-Sep-2014)
 
 Features added
 --------------
-
 * Method validate: a consistency checker for signal attributes.
 * Method code2mod: code to symbols signal modulator.
 * Method mod2code: demodulator by maximum correlation symbol estimation.
@@ -123,7 +125,6 @@ Features added
 
 Changes
 -------
-
 * Method test changed to function.
 * Signal instancing now validate signal attributes.
 * Now, instancing of Signal() generates a void signal.
@@ -132,7 +133,6 @@ Changes
 
 Bugs fixed
 ----------
-
 * Method chop: wrong chop when split falls on signal end.
 * Method __add__: added inplace=false to join call.
 * Method level: wrong level returned.
@@ -143,12 +143,10 @@ Bugs fixed
 
 Documentation
 -------------
-
 * Added the rules of BTS format.
 
 Internals
 ---------
-
 * Rewrite of void signal handling through all methods and functions.
 * New test for methods code2mod and mod2code.
 * Refactored method split with method level.
@@ -162,20 +160,17 @@ Release 0.9.0 (released 10-Sep-2014)
 
 Features added
 --------------
-
 * New method level: return the signal level and edge position at a given time.
 * Methods shift, reverse, __invert__ now can work inplace: result into self signal.
 * New method __nonzero__: return true if the signal is not empty. 
 
 Changes
 -------
-
 * All methods and objects changed to work with the new BTS format (v2).
 * Removed methods: start, end.
 
 Bugs fixed
 ----------
-
 * Fix method reverse: now works when signal start != 0.
 * Fix method split when split time falls on signal start or end and after last edge.
 * Fix method chop.
@@ -185,7 +180,6 @@ Bugs fixed
 
 Internals
 ---------
-
 * Method _intersect now returns as last edge position the position plus one.
 * Added tests for inplace/noinplace testing.
 
@@ -195,7 +189,6 @@ Release 0.8.0 (released 26-Aug-2014)
 
 Features added
 --------------
-
 * New method chop: divide a signal in a sequence of contiguous signal of
   given period.
 * Method correlation now has a mask argument: if mask signal is not none, the
@@ -210,14 +203,12 @@ Features added
 
 Changes
 -------
-
 * Methods start, end, elapsed now return None when the signal time changes
   sequence is empty.
 * Method bin2pwm now signal start=origin and signal end is not extended.
 
 Bugs fixed
 ----------
-
 * Fix method correlation stepping limits for defaults.
 * Fix method split splitting on a change time: now correct end of older part
   and correct start of newer part are generated.
@@ -226,7 +217,6 @@ Bugs fixed
 
 Internals
 ---------
-
 * Added test for method chop.
 * Added test for new the convertion mode (sync symb corr) of method pwm2bin.
 
@@ -236,12 +226,10 @@ Release 0.7.1 (released 3-Feb-2014)
 
 Bugs fixed
 ----------
-
 * Fix inequality test: missing __ne__ method.
 
 Internals
 ---------
-
 * Optimized "and" and "or" operator for constant signals.
 
 
@@ -250,13 +238,11 @@ Release 0.7.0 (released 27-Jan-2014)
 
 Features added
 --------------
-
 * Add buf_step to method stream.
 * Add return self to in place working method clone_into.
 
 Incompatible changes
 --------------------
-
 * Change step_start, step_num with step_left, step_right in method correlation.
 * Change correlation unittest from a graphic one to procedural only.
 
@@ -266,7 +252,6 @@ Release 0.6.0 (released 16-Dec-2013)
 
 Features added
 --------------
-
 * Add method clone_into.
 * Add method concatenate: add operator.
 * Add method stream.
@@ -277,19 +262,16 @@ Features added
 
 Incompatible changes
 --------------------
-
 * Change start level with active argument in noise method.
 
 Bugs fixed
 ----------
-
 * Fix method append: make it return the signal with the append result.
 * Fix shift in correlation method.
 * Fix time shift computation in correlaton method: was delayed by 1 step size.
 
 Internals
 ---------
-
 * Change method append: check arguments with assert.
 * Refactor method split.
 
@@ -299,7 +281,6 @@ Release 0.5.0 (released 9-Dec-2013)
 
 Features added
 --------------
-
 * Embed y limits setting into plot method.
 * Add method square for signal generation of a periodc square wave.
 * Add a more fine control in correlation function computation.
@@ -310,18 +291,15 @@ Features added
 
 Incompatible changes
 --------------------
-
 * Change start times computation in bin2pwn, serial_tx to minimize
   time elapse from start to first change.
 
 Bugs fixed
 ----------
-
 * Fix 0.4.0 release changelog: missing changes.
 
 Internals
 ---------
-
 * Change noise from method to function.
 * Change examples for changed noise method.
 
@@ -331,7 +309,6 @@ Release 0.4.0 (released 2-Dec-2013)
 
 Features added
 --------------
-
 * Add signal split method.
 * Add two signals join method.
 * Add unittest for split and join.
@@ -339,19 +316,16 @@ Features added
 
 Incompatible changes
 --------------------
-
 * Uniformate pwm2bin arguments to bin2pwm methods.
 * Add tscale=1. argument in bin2pwm.
 * Change to tscale=1. argument in serial_tx.
 
 Bugs fixed
 ----------
-
 * Fix slevel setup, signal start and end in bin2pwm.
 
 Internals
 ---------
-
 * Rewrite jitter method.
 
 
@@ -360,7 +334,6 @@ Release 0.3.0 (released 11-Nov-2013)
 
 Features added
 --------------
-
 * Add async serial transmitter (bits.serial_tx method) from chars to BTS
   serial line signal.
 * Add async serial receiver (bitis.serial_rx method) from BTS serial line
@@ -375,7 +348,6 @@ Release 0.2.0 (released 4-Nov-2013)
 
 Features added
 --------------
-
 * Add PWM coder and decoder between a BTS signal (PWM) and a binary code.
 * New correlation example.
 
