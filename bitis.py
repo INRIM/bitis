@@ -875,21 +875,37 @@ class Signal:
         return integral
 
 
-    def correlation(self,other,mask=None,normalize=False,step_size=1.,
-            skip=0,width=None):
+    def correlation(self,other,mask=None,step_size=1.,
+            skip=0,width=None,normalize=False):
         """ Return the correlation function of two given signal objects:
-        *self* and *other*. If *mask* is defined as signal object, the
-        correlation is computed only where mask=1. Output can be absolute:
-        integral of xor between shifted *self* and *other* signals
-        (*normalize=False*). Output can be normalized (*normalize=True*) in
-        the range -1 +1. The correlation function time scale is set by
-        *step_size*.
-        The correlation function is returned as two lists: the correlation
-        values and the correlation time shifts applied to the *self* signal to
-        slide it over the *other* signal. 
-        *skip* is the time elapse at the start of the correlation
-        function not to be computed.
-        *width* is the time elapse where to compute the correlation function.
+        *self* and *other*.
+
+          **mask**: signal or None, same elapse of *other*. Compute
+          correlation only where *mask* == 1. If None, compute correlation
+          on the whole intersection of *self* and *other*.
+
+          **step_size**: positive float, the time pitch of the correlation
+          function.
+
+          **skip**: positive float, the time elapse at the start of the
+          correlation function not to be computed.
+
+          **width**: is the time elapse where to compute the correlation
+          function. If None, compute the correlation function for each time
+          shift of *self* that has an intersection with *other*, having an
+          elapse time >= *step_size*.
+
+          **normalize**: boolean, controls the values of the correlation
+          function. If True, values are normalized in the range -1 +1.
+          If False, values are absolute: the integral of xor between shifted
+          *self* and *other* signals.
+    
+        Return pattern **(** *corr, shift* **)**
+
+          **corr**: list of floats. The values of the correlation function.
+
+          **shift**: list of floats. The time shift applied to *self* to slide
+          it over *other* signal for each value of *corr*.
         """
 
         # if at least one signal is void, return empty lists.
@@ -911,19 +927,19 @@ class Signal:
         sig_a = self.clone()
 
         # time shift that, applied to A, align A end with B start.
-        shift = other.start - self.end
+        align_shift = other.start - self.end
 
         # apply shift to slide A to the leftmost position
-        sig_a.shift(shift + skip + step_size,inplace=True)
+        sig_a.shift(align_shift + skip + step_size,inplace=True)
 
         # compute correlation step by step
         corr = []
-        shifts = []
-        while sig_a.start <= self.start + shift + skip + width:
+        shift = []
+        while sig_a.start <= self.start + align_shift + skip + width:
 
             # correlation among signal A and B
             if mask:
-                xor = (sig_a ^ other) & mask
+                xor = (sig_a ^ other) | ~mask
             else:
                 xor = sig_a ^ other
             if normalize:
@@ -931,12 +947,12 @@ class Signal:
             else:
                 corr += [xor.integral(0,normalize=False)]
 
-            shifts += [sig_a.start - self.start]
+            shift += [sig_a.start - self.start]
 
-            # shift right A by step units
+            # shift right A by step unit
             sig_a.shift(step_size,inplace=True)
 
-        return corr, shifts
+        return corr, shift
 
 
     def phase(self,other,mask,resolutions,period=None):
@@ -946,8 +962,9 @@ class Signal:
         For faster computation, the phase can be computed by progressive smaller
         resolutions.
 
-          **mask**: signal, same elapse of *other*, compute correlation only
-          where *mask* == 1.
+          **mask**: signal or None, same elapse of *other*. Compute
+          correlation only where *mask* == 1. If None, compute correlation
+          on the whole intersection of *self* and *other*.
 
           **resolutions**: tuple or list of positive float, at least one
           element, sequence of resolutions from coarser to finest, the time
@@ -979,20 +996,11 @@ class Signal:
         corrs = []
         shifts = []
 
-        # If period is defined, take correlation range from signal start to
-        # twice the signal period. Else, take the whole range where
-        # correlation is defined.
-        if period:
-            width = 2 * period
-        else:
-            width = None
-
         # preserve original signal
         sig = self.clone()
 
         # correlation function of self with other
-        corr, shift = sig.correlation(other,mask,step_size=resolutions[0],
-            width=width,normalize=False)
+        corr, shift = sig.correlation(other,mask,step_size=resolutions[0])
 
         # save results of current resolution level
         corrs.append(corr)
@@ -1014,8 +1022,7 @@ class Signal:
             corr, shift = sig.correlation(other,mask,
                 step_size=resolution,
                 skip=sig.end-other.start-resolution-0.6*last_resolution,
-                width=1.3*last_resolution,
-                normalize=False)
+                width=1.3*last_resolution)
 
             # save results of current resolution level
             corrs.append(corr)
