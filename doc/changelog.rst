@@ -1,6 +1,20 @@
 Changes
 *******
 
+Release 0.12.1 (released 3-Dec-2014)
+====================================
+
+New features
+------------
+
+* Method phase: add correlation value at phase shift.
+
+Bugs fixed
+----------
+
+* Method phase: fix incomplete refactoring of other identifier.
+
+
 Release 0.12.0 (released 1-Dec-2014)
 ====================================
 
