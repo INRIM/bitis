@@ -290,17 +290,24 @@ class Signal:
 
 
     def split(self,split,inplace=False):
-        """ Split the signal into two signals. *split* is the split time.
-        Return two signal objects. The first is the part of the original
-        signal before the split time, it ends at the split time. The second is
-        the part after the split time, it starts at the split time.
+        """ Split *self* into two signals at time *split*.
+
+        Return pattern **(** *older, newer* **)**
+
+          **older**: signal, the part of *self* from start time to *split* time.
+
+          **newer**: signal, the part of *self* from *split* time to signal end.
+
         If *split* is equal to a signal change time, the change is put into
-        the second part signal.
-        If *split* is before signal start, return a void signal and *self*.
-        If *split* is after signal end, return *self* and a void signal. 
-        If *inplace* is false, the second signal is a new signal object.
-        If *inplace* is true, the second signal is put into the *self* signal. 
-        If *self* is void, return the void signal. """
+        the *newer* part.
+        If *split* is at or before signal start, *older* is the void signal and
+        *newer* is *self*.
+        If *split* is at or after signal end, *older* is *self* and *newer* is
+        the void signal. 
+        If *inplace* is false, *newer* is returned as a new signal object.
+        If *inplace* is true, *self* is changed to *newer* and returned as
+        *newer*. 
+        If *self* is void, both *older* and *newer* are the void signal. """
 
         # void is split invariant
         if not self:
@@ -319,7 +326,12 @@ class Signal:
         #  split after signal end
         if self.end <= split:
             if inplace:
-                return self, Signal()
+                older = Signal(self.start,self.edges,self.end,self.slevel,
+                    self.tscale)
+                self.start = None
+                self.edges = []
+                self.end = None
+                return older, self
             else:
                 return self.clone(), Signal()
 
@@ -344,26 +356,33 @@ class Signal:
 
 
     def older(self,split,inplace=False):
-        """ Split the signal into two signals. *split* is the split time.
-        Return the older part: the part of the original signal before the
-        split time, it ends at the split time.
-        If *inplace* is false, the newer part is a new signal object.
-        If *inplace* is true, the newer part is put into the *self* signal. 
-        If *split* is equal to a signal change time, the change is left out.
-        If *split* is not inside the original signal domain, no split
-        occours, a void signal is returned. """
+        """ Split *self* into two signals at time *split* and return the part
+        before split time.
+        If *split* is equal to a signal change time, the change is not put into
+        the return signal.
+        If *split* is at or before signal start, return the void signal.
+        If *split* is at or after signal end, return *self*. 
+        If *inplace* is false, a new signal object is returned.
+        If *inplace* is true, *self* is changed to the older part and returned.
+        If *self* is void, the void signal is returned. """
 
-        # if split outside signal domain, return void.
-        if not self or split < self.start or self.end < split:
+        # void is split invariant
+        if not self:
             if inplace:
                 return self
             else:
-                return self.clone()
+                return Signal()
 
-        # if split falls on start or end
-        if split == self.start:
-            return Signal()
-        elif split == self.end:
+        # split before signal start
+        if split <= self.start:
+            if inplace:
+                Signal().clone_into(self)
+                return self
+            else:
+                return Signal()
+
+        #  split after signal end
+        if self.end <= split:
             if inplace:
                 return self
             else:
@@ -375,6 +394,7 @@ class Signal:
         # older signal part: pre split time. 
         if inplace:
             self.edges = self.edges[0:split_pos]
+            self.end = split
             older = self
         else:
             older = Signal(self.start,self.edges[0:split_pos],split,
@@ -384,36 +404,42 @@ class Signal:
 
 
     def newer(self,split,inplace=False):
-        """ Split the signal into two signals. *split* is the split time.
-        Return the newer part: the part of the original
-        signal before the split time, it ends at the split time.
+        """ Split *self* into two signals at time *split* and return the part
+        after split time.
         If *split* is equal to a signal change time, the change is put into
-        the newer part.
-        If *inplace* is false, the newer part is a new signal object.
-        If *inplace* is true, the newer part is put into the *self* signal. 
-        If *split* is not inside the original signal domain, no split
-        occours, a void signal is returned. """
+        the return signal.
+        If *split* is at or before signal start, return *self*.
+        If *split* is at or after signal end, return the void signal. 
+        If *inplace* is false, a new signal object is returned.
+        If *inplace* is true, *self* is changed to the newer part and returned.
+        If *self* is void, the void signal is returned. """
 
-        # if split outside signal domain, return void.
-        if not self or split < self.start or self.end < split:
+        # void is split invariant
+        if not self:
+            if inplace:
+                return self
+            else:
+                return Signal()
+
+        # split before signal start
+        if split <= self.start:
             if inplace:
                 return self
             else:
                 return self.clone()
 
-        # if split falls on start or end
-        if split == self.start:
+        #  split after signal end
+        if self.end <= split:
             if inplace:
+                Signal().clone_into(self)
                 return self
             else:
-                return self.clone()
-        elif split == self.end:
-            return Signal()
+                return Signal()
 
         # search split point
         level, split_pos = self.level(split)
 
-        # newer signal part: post split time.
+        # the newer signal part: post split time.
         if inplace:
             self.start = split
             self.edges = self.edges[split_pos:]
