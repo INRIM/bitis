@@ -1,6 +1,23 @@
 Changes
 *******
 
+Release 0.12.3 (released 9-Dec-2014)
+====================================
+
+Changes
+-------
+* Methods older and newer: rewrite of boundary conditions processing.
+
+Bugs fixed
+----------
+* Method split: wrong return signal when split at or after self end.
+* Method older: wrong end time of return signal.
+
+Documentation
+-------------
+* Methods split, newer and older: new documentation and layout.
+
+
 Release 0.12.2 (released 6-Dec-2014)
 ====================================
 
